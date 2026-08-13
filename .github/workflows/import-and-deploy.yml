@@ -25,7 +25,7 @@ jobs:
 
       - name: Import Phoneage source
         run: |
-          if [ -f .dinodash-imported ]; then
+          if [ -f .dinodash-imported ] && [ -f package.json ]; then
             echo "Phoneage source already imported."
           else
             git clone --depth 1 https://github.com/kaospan/phoneage.git /tmp/phoneage
