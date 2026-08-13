@@ -27,23 +27,16 @@ jobs:
         run: |
           if [ -f .dinodash-imported ]; then
             echo "Phoneage source already imported."
-            exit 0
+          else
+            git clone --depth 1 https://github.com/kaospan/phoneage.git /tmp/phoneage
+            find /tmp/phoneage -mindepth 1 -maxdepth 1 ! -name .git -exec cp -a {} . \;
+            touch .dinodash-imported
           fi
-
-          git clone --depth 1 https://github.com/kaospan/phoneage.git /tmp/phoneage
-          find /tmp/phoneage -mindepth 1 -maxdepth 1 ! -name .git -exec cp -a {} . \;
-          rm -rf .git
-          git init
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch origin main
-          git checkout -B main origin/main
-          touch .dinodash-imported
 
       - name: Rebrand source text
         run: |
           python - <<'PY'
           from pathlib import Path
-          import subprocess
 
           root = Path('.')
           skip = {'.git', 'node_modules', 'dist', '.github'}
@@ -61,14 +54,12 @@ jobs:
           PY
 
       - name: Commit imported Dinodash source
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Import and rebrand Phoneage as Dinodash" || echo "No source changes to commit"
-          git push origin main --force
+          git push origin main
 
       - name: Setup Node
         uses: actions/setup-node@v4
