@@ -58,7 +58,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Import and rebrand Phoneage as Dinodash" || echo "No source changes to commit"
+          git commit -m "Import and rebrand Phoneage as Dinodash [skip ci]" || echo "No source changes to commit"
           git push origin main
 
       - name: Setup Node
