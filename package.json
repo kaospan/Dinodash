@@ -117,5 +117,6 @@
     "vite": "^5.4.19",
     "vitest": "^4.1.10"
   },
-  "description": "Dinodash 2D puzzle game with an additive 3D vertical puzzle mode"
+  "description": "Dinodash 2D puzzle game with an additive 3D vertical puzzle mode",
+  "optionalDependencies": {}
 }
