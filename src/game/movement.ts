@@ -46,6 +46,9 @@ export function attemptPlayerMove(state: GameState, dx: number, dy: number): Pla
     if (isArrowDir) {
       const glide = computePlayerGlidePath(grid, playerPos, dx, dy, playerCell);
       if (glide.path.length === 0) return {};
+      // A moving arrow vacates its source cell permanently as VOID. Do not let the
+      // renderer/simulation restore the inferred terrain beneath the arrow.
+      baseGrid[playerPos.y][playerPos.x] = 5;
       return {
         glidePath: glide,
         newGrid: grid.map(r => [...r]),
@@ -148,7 +151,7 @@ export interface RemoteArrowOutcome {
 }
 
 export function attemptRemoteArrowMove(state: GameState, dx: number, dy: number): RemoteArrowOutcome {
-  const { grid, selectedArrow } = state;
+  const { grid, selectedArrow, baseGrid } = state;
   if (!selectedArrow) return {};
   const arrowCell = grid[selectedArrow.y][selectedArrow.x] as CellType;
   if (!isArrowCell(arrowCell)) return {};
@@ -158,5 +161,8 @@ export function attemptRemoteArrowMove(state: GameState, dx: number, dy: number)
 
   const glide = computeRemoteArrowGlidePath(grid, selectedArrow, dx, dy, arrowCell);
   if (glide.path.length === 0) return {};
+  // The arrow is a movable tile: once it leaves this coordinate, the source is VOID.
+  // This prevents the simulation from restoring the inferred floor under the arrow.
+  baseGrid[selectedArrow.y][selectedArrow.x] = 5;
   return { glidePath: glide, newGrid: grid.map(r => [...r]), consumedMove: true };
 }
