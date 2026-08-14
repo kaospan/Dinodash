@@ -1,4 +1,4 @@
-name: Import Phoneage, Rebrand and Deploy Dinodash
+name: Build and Deploy Dinodash
 
 on:
   push:
@@ -14,64 +14,394 @@ concurrency:
   group: dinodash-pages
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
-  build-and-import:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
     steps:
       - name: Checkout Dinodash
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Import Phoneage source
+      - name: Import complete Phoneage source
         run: |
           if [ -f .dinodash-imported ] && [ -f package.json ]; then
             echo "Phoneage source already imported."
           else
             git clone --depth 1 https://github.com/kaospan/phoneage.git /tmp/phoneage
-            find /tmp/phoneage -mindepth 1 -maxdepth 1 ! -name .git -exec cp -a {} . \;
+            find /tmp/phoneage -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec cp -a {} . \;
+            cp -a /tmp/phoneage/.github/COPILOT-INSTRUCTIONS.md .github/ 2>/dev/null || true
+            mkdir -p .github/workflows
+            cp -a /tmp/phoneage/.github/workflows/tests.yml .github/workflows/ 2>/dev/null || true
             touch .dinodash-imported
           fi
 
-      - name: Rebrand source text
+      - name: Rebrand application metadata and visible branding
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          # README: user-facing documentation only.
+          readme = Path('README.md')
+          if readme.exists():
+              s = readme.read_text(encoding='utf-8')
+              s = s.replace('Phoneage', 'Dinodash').replace('PHONEAGE', 'DINODASH')
+              readme.write_text(s, encoding='utf-8')
+
+          # Package metadata without renaming internal source identifiers.
+          package = Path('package.json')
+          data = json.loads(package.read_text(encoding='utf-8'))
+          data['name'] = 'dinodash'
+          data['description'] = 'Dinodash 2D puzzle game with an additive 3D vertical puzzle mode'
+          package.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
+
+          lock = Path('package-lock.json')
+          if lock.exists():
+              lock_data = json.loads(lock.read_text(encoding='utf-8'))
+              lock_data['name'] = 'dinodash'
+              if isinstance(lock_data.get('packages'), dict) and isinstance(lock_data['packages'].get(''), dict):
+                  lock_data['packages']['']['name'] = 'dinodash'
+              lock.write_text(json.dumps(lock_data, indent=2) + '\n', encoding='utf-8')
+
+          # Browser/PWA metadata.
+          index = Path('index.html')
+          s = index.read_text(encoding='utf-8')
+          s = s.replace('<title>Phoneage</title>', '<title>Dinodash</title>')
+          s = s.replace('content="Phoneage"', 'content="Dinodash"')
+          if 'manifest.webmanifest' not in s:
+              s = s.replace('<link rel="apple-touch-icon" href="%BASE_URL%favicon.svg" />', '<link rel="apple-touch-icon" href="%BASE_URL%favicon.svg" />\n    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />')
+          index.write_text(s, encoding='utf-8')
+
+          manifest = Path('public/manifest.webmanifest')
+          manifest.parent.mkdir(parents=True, exist_ok=True)
+          manifest.write_text(json.dumps({
+              'name': 'Dinodash',
+              'short_name': 'Dinodash',
+              'start_url': './',
+              'display': 'standalone',
+              'description': 'Dinodash puzzle game',
+              'icons': [{'src': './favicon.svg', 'sizes': 'any', 'type': 'image/svg+xml'}]
+          }, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Add Dinodash 3D vertical puzzle mode
+        run: |
+          mkdir -p src/game3d src/pages
+          cat > src/game3d/level3d.ts <<'EOF'
+          export type TileType = 'floor' | 'wall' | 'goal' | 'start';
+
+          export type Position3D = {
+            x: number;
+            y: number;
+            height: number;
+          };
+
+          export type Cell3D = {
+            x: number;
+            y: number;
+            height: number;
+            type: TileType;
+          };
+
+          export type Level3D = {
+            width: number;
+            depth: number;
+            maxHeight: number;
+            cells: Cell3D[];
+            playerStart: Position3D;
+            goal: Position3D;
+          };
+          EOF
+
+          cat > src/game3d/level3dLogic.ts <<'EOF'
+          import type { Level3D, Position3D } from './level3d';
+
+          export type Move3D = 'up' | 'down' | 'left' | 'right';
+
+          const DELTAS: Record<Move3D, { x: number; y: number }> = {
+            up: { x: 0, y: -1 },
+            down: { x: 0, y: 1 },
+            left: { x: -1, y: 0 },
+            right: { x: 1, y: 0 },
+          };
+
+          export function cellAt(level: Level3D, x: number, y: number) {
+            return level.cells.find((cell) => cell.x === x && cell.y === y);
+          }
+
+          export function movePlayer(level: Level3D, player: Position3D, move: Move3D): Position3D | null {
+            const delta = DELTAS[move];
+            const nextX = player.x + delta.x;
+            const nextY = player.y + delta.y;
+            if (nextX < 0 || nextY < 0 || nextX >= level.width || nextY >= level.depth) return null;
+
+            const target = cellAt(level, nextX, nextY);
+            if (!target) return null;
+
+            // A one-level climb is allowed. Terrain more than one level higher blocks movement.
+            if (target.height > player.height + 1) return null;
+
+            return { x: nextX, y: nextY, height: target.height };
+          }
+
+          export function isComplete(level: Level3D, player: Position3D) {
+            return player.x === level.goal.x && player.y === level.goal.y && player.height === level.goal.height;
+          }
+          EOF
+
+          cat > src/game3d/levels3d.ts <<'EOF'
+          import type { Cell3D, Level3D } from './level3d';
+
+          const grid = (rows: number[][]): Cell3D[] => rows.flatMap((row, y) => row.map((height, x) => ({
+            x, y, height, type: 'floor' as const,
+          })));
+
+          const make = (rows: number[][], start: [number, number], goal: [number, number]): Level3D => {
+            const cells = grid(rows);
+            const heightAt = (x: number, y: number) => rows[y][x];
+            const playerStart = { x: start[0], y: start[1], height: heightAt(start[0], start[1]) };
+            const goalPos = { x: goal[0], y: goal[1], height: heightAt(goal[0], goal[1]) };
+            cells.find((c) => c.x === goal[0] && c.y === goal[1])!.type = 'goal';
+            cells.find((c) => c.x === start[0] && c.y === start[1])!.type = 'start';
+            return { width: rows[0].length, depth: rows.length, maxHeight: Math.max(...rows.flat()), cells, playerStart, goal: goalPos };
+          };
+
+          // Ten original levels. They are deliberately small experimental boards, not conversions of 2D levels.
+          const flat = (h = 1) => Array.from({ length: 7 }, () => Array(7).fill(h));
+          const withCells = (edits: Record<string, number>) => {
+            const r = flat();
+            for (const [key, h] of Object.entries(edits)) {
+              const [x, y] = key.split(',').map(Number);
+              r[y][x] = h;
+            }
+            return r;
+          };
+
+          export const levels3D: Level3D[] = [
+            make(flat(), [0, 3], [6, 3]),
+            make(withCells({ '2,3': 2, '3,3': 2, '4,3': 3 }), [0, 3], [6, 3]),
+            make(withCells({ '2,3': 2, '3,3': 2, '4,3': 1 }), [0, 3], [6, 3]),
+            make(withCells({ '2,3': 3, '2,4': 2, '3,4': 2, '4,4': 1 }), [0, 3], [6, 4]),
+            make(withCells({ '2,2': 3, '2,3': 3, '2,4': 3, '4,2': 2, '4,3': 2, '4,4': 2 }), [0, 3], [6, 3]),
+            make(withCells({ '1,2': 2, '1,3': 2, '1,4': 2, '3,1': 3, '3,2': 3, '3,3': 3, '5,2': 2, '5,3': 2, '5,4': 2 }), [0, 3], [6, 3]),
+            make(withCells({ '1,3': 2, '2,3': 3, '3,3': 2, '4,3': 3, '5,3': 2 }), [0, 3], [6, 3]),
+            make(withCells({ '1,3': 2, '2,3': 3, '3,2': 2, '3,3': 3, '3,4': 2, '4,3': 3, '5,3': 2 }), [0, 3], [6, 3]),
+            make(withCells({ '1,3': 2, '2,3': 3, '2,2': 2, '3,2': 3, '4,2': 2, '4,3': 3, '5,3': 2, '5,4': 3 }), [0, 3], [6, 4]),
+            make(withCells({ '1,3': 2, '2,3': 3, '2,2': 2, '3,2': 3, '3,1': 2, '4,1': 3, '4,2': 3, '5,2': 2, '5,3': 3, '6,3': 3 }), [0, 3], [6, 3]),
+          ];
+          EOF
+
+          cat > src/pages/Dinodash3D.tsx <<'EOF'
+          import { useMemo, useState } from 'react';
+          import { Canvas } from '@react-three/fiber';
+          import { OrthographicCamera } from '@react-three/drei';
+          import * as THREE from 'three';
+          import { levels3D } from '@/game3d/levels3d';
+          import { isComplete, movePlayer, type Move3D } from '@/game3d/level3dLogic';
+          import type { Level3D, Position3D } from '@/game3d/level3d';
+          import './Dinodash3D.css';
+
+          const CAMERA_DISTANCE = 11;
+          const cameraPositions = [
+            [CAMERA_DISTANCE, CAMERA_DISTANCE, CAMERA_DISTANCE],
+            [-CAMERA_DISTANCE, CAMERA_DISTANCE, CAMERA_DISTANCE],
+            [-CAMERA_DISTANCE, CAMERA_DISTANCE, -CAMERA_DISTANCE],
+            [CAMERA_DISTANCE, CAMERA_DISTANCE, -CAMERA_DISTANCE],
+          ] as const;
+
+          function Diorama({ level, player }: { level: Level3D; player: Position3D }) {
+            const blocks = useMemo(() => {
+              const geometry = new THREE.BoxGeometry(0.92, 1, 0.92);
+              const material = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.06 });
+              const mesh = new THREE.InstancedMesh(geometry, material, level.cells.length * 3);
+              let index = 0;
+              const matrix = new THREE.Matrix4();
+              for (const cell of level.cells) {
+                for (let h = 0; h < cell.height; h += 1) {
+                  matrix.makeTranslation(cell.x - 3, h * 0.5, cell.y - 3);
+                  matrix.scale(new THREE.Vector3(1, 0.5, 1));
+                  mesh.setMatrixAt(index++, matrix);
+                }
+              }
+              mesh.count = index;
+              mesh.instanceMatrix.needsUpdate = true;
+              return mesh;
+            }, [level]);
+
+            return (
+              <>
+                <ambientLight intensity={1.7} />
+                <directionalLight position={[6, 10, 8]} intensity={3.5} />
+                <primitive object={blocks} />
+                <mesh position={[player.x - 3, player.height * 0.5 + 0.5, player.y - 3]} castShadow>
+                  <capsuleGeometry args={[0.22, 0.45, 4, 10]} />
+                  <meshStandardMaterial roughness={0.5} />
+                </mesh>
+                <mesh position={[level.goal.x - 3, level.goal.height * 0.5 + 0.58, level.goal.y - 3]}>
+                  <cylinderGeometry args={[0.28, 0.34, 0.12, 24]} />
+                  <meshStandardMaterial emissive="white" emissiveIntensity={0.8} />
+                </mesh>
+              </>
+            );
+          }
+
+          const moves: Array<[string, Move3D]> = [['↑', 'up'], ['↓', 'down'], ['←', 'left'], ['→', 'right']];
+
+          export default function Dinodash3D() {
+            const [levelIndex, setLevelIndex] = useState(0);
+            const [player, setPlayer] = useState(levels3D[0].playerStart);
+            const [rotation, setRotation] = useState(0);
+            const [zoom, setZoom] = useState(7);
+            const level = levels3D[levelIndex];
+            const complete = isComplete(level, player);
+
+            const loadLevel = (next: number) => {
+              const index = (next + levels3D.length) % levels3D.length;
+              setLevelIndex(index);
+              setPlayer(levels3D[index].playerStart);
+            };
+
+            const tryMove = (move: Move3D) => {
+              const next = movePlayer(level, player, move);
+              if (next) setPlayer(next);
+            };
+
+            return (
+              <main className="dinodash3d">
+                <header className="dinodash3d__header">
+                  <div><strong>DINODASH</strong><span> / 3D</span></div>
+                  <div className="dinodash3d__level">LEVEL {levelIndex + 1} / {levels3D.length}</div>
+                </header>
+                <section className="dinodash3d__stage">
+                  <Canvas dpr={[1, 2]} shadows>
+                    <OrthographicCamera makeDefault position={cameraPositions[rotation]} zoom={zoom} onUpdate={(camera) => camera.lookAt(0, 0, 0)} />
+                    <color attach="background" args={['#d9d2c3']} />
+                    <Diorama level={level} player={player} />
+                  </Canvas>
+                  {complete && <div className="dinodash3d__complete">LEVEL COMPLETE</div>}
+                </section>
+                <section className="dinodash3d__controls">
+                  <div className="dinodash3d__row">
+                    <button onClick={() => setRotation((r) => (r + 1) % 4)}>ROTATE ↻</button>
+                    <button onClick={() => setZoom((z) => Math.min(10, z + 1))}>+</button>
+                    <button onClick={() => setZoom((z) => Math.max(4, z - 1))}>−</button>
+                  </div>
+                  <div className="dinodash3d__dpad">
+                    {moves.map(([label, move]) => <button key={move} onClick={() => tryMove(move)} aria-label={move}>{label}</button>)}
+                  </div>
+                  <div className="dinodash3d__row">
+                    <button onClick={() => loadLevel(levelIndex - 1)}>PREV</button>
+                    <button onClick={() => setPlayer(level.playerStart)}>RESET</button>
+                    <button onClick={() => loadLevel(levelIndex + 1)}>NEXT</button>
+                  </div>
+                </section>
+              </main>
+            );
+          }
+          EOF
+
+          cat > src/pages/Dinodash3D.css <<'EOF'
+          .dinodash3d { min-height: 100vh; background: #d9d2c3; color: #29251f; font-family: system-ui, sans-serif; display: flex; flex-direction: column; }
+          .dinodash3d__header { display:flex; justify-content:space-between; padding:14px 18px; letter-spacing:.08em; font-size:14px; }
+          .dinodash3d__header span { opacity:.55; }
+          .dinodash3d__level { font-variant-numeric:tabular-nums; }
+          .dinodash3d__stage { position:relative; flex:1; min-height:58vh; }
+          .dinodash3d__stage canvas { display:block; width:100%; height:100%; }
+          .dinodash3d__complete { position:absolute; inset:20px auto auto 50%; transform:translateX(-50%); padding:10px 16px; background:#29251f; color:#fff; border-radius:999px; font-weight:700; letter-spacing:.08em; }
+          .dinodash3d__controls { padding:14px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+          .dinodash3d__row { display:flex; gap:8px; }
+          .dinodash3d button { border:1px solid #6f675b; background:#efe9dc; color:#29251f; border-radius:8px; min-width:52px; min-height:42px; font-weight:700; cursor:pointer; }
+          .dinodash3d__dpad { display:grid; grid-template-columns:repeat(3,52px); grid-template-rows:repeat(2,42px); gap:6px; }
+          .dinodash3d__dpad button:nth-child(1) { grid-column:2; }
+          .dinodash3d__dpad button:nth-child(2) { grid-column:2; grid-row:2; }
+          .dinodash3d__dpad button:nth-child(3) { grid-column:1; grid-row:2; }
+          .dinodash3d__dpad button:nth-child(4) { grid-column:3; grid-row:2; }
+          @media (min-width: 800px) { .dinodash3d__stage { min-height:70vh; } }
+          EOF
+
+          cat > src/game3d/level3dLogic.test.ts <<'EOF'
+          import { describe, expect, it } from 'vitest';
+          import { levels3D } from './levels3d';
+          import { isComplete, movePlayer } from './level3dLogic';
+
+          describe('Dinodash 3D movement', () => {
+            it('keeps the 3D level format separate and starts at the declared position', () => {
+              expect(levels3D).toHaveLength(10);
+              expect(levels3D[0].width).toBe(7);
+              expect(levels3D[0].depth).toBe(7);
+              expect(levels3D[0].playerStart).toEqual({ x: 0, y: 3, height: 1 });
+            });
+
+            it('allows same-height movement and one-level climbs', () => {
+              const level = levels3D[1];
+              expect(movePlayer(level, { x: 1, y: 3, height: 1 }, 'right')).toEqual({ x: 2, y: 3, height: 2 });
+            });
+
+            it('blocks terrain more than one level higher', () => {
+              const level = levels3D[4];
+              expect(movePlayer(level, { x: 1, y: 3, height: 1 }, 'right')).toBeNull();
+            });
+
+            it('recognizes the goal position', () => {
+              const level = levels3D[0];
+              expect(isComplete(level, level.goal)).toBe(true);
+            });
+          });
+          EOF
+
+          python - <<'PY'
+          from pathlib import Path
+          app = Path('src/App.tsx')
+          s = app.read_text(encoding='utf-8')
+          if 'Dinodash3D' not in s:
+              s = s.replace('import NotFound from "./pages/NotFound";', 'import NotFound from "./pages/NotFound";\nimport Dinodash3D from "./pages/Dinodash3D";')
+              s = s.replace('<Route path="/" element={<Index />} />', '<Route path="/" element={<Index />} />\n              <Route path="/3d" element={<Dinodash3D />} />')
+          app.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Configure Vite Pages base
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          root = Path('.')
-          skip = {'.git', 'node_modules', 'dist', '.github'}
-          exts = {'.ts','.tsx','.js','.jsx','.json','.md','.html','.css','.scss','.svg','.txt','.yml','.yaml'}
-          for p in root.rglob('*'):
-              if not p.is_file() or any(part in skip for part in p.parts) or p.suffix.lower() not in exts:
-                  continue
-              try:
-                  s = p.read_text(encoding='utf-8')
-              except Exception:
-                  continue
-              n = s.replace('Phoneage', 'Dinodash').replace('PHONEAGE', 'DINODASH').replace('phoneage', 'dinodash')
-              if n != s:
-                  p.write_text(n, encoding='utf-8')
+          p = Path('vite.config.ts')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('const base = process.env.VITE_BASE ?? "/";', 'const base = process.env.VITE_BASE ?? "/Dinodash/";')
+          p.write_text(s, encoding='utf-8')
           PY
 
-      - name: Commit imported Dinodash source
+      - name: Remove imported duplicate deployment workflow
+        run: rm -f .github/workflows/deploy-pages.yml
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Test
+        run: npm run test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Production build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Commit imported and upgraded source
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Import and rebrand Phoneage as Dinodash [skip ci]" || echo "No source changes to commit"
+          git commit -m "Migrate Phoneage to Dinodash with additive 3D mode [skip ci]" || echo "No source changes to commit"
           git push origin main
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Dinodash
-        run: npm run build
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -81,13 +411,15 @@ jobs:
         with:
           path: dist
 
-  deploy:
-    needs: build-and-import
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed URL
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          echo "Deployed URL: $URL"
+          test -n "$URL"
+          curl --fail --silent --show-error --location --max-time 30 "$URL" >/tmp/dinodash.html
+          grep -qi "Dinodash" /tmp/dinodash.html
+          echo "Pages deployment verified."
