@@ -1,0 +1,411 @@
+# Phone Age - Level Solutions
+# Generated 2026-07-14 using the repo built-in BFS solver (src/lib/levelSolver.ts).
+# Notation: P:<dir> = move the player, A(x,y):<dir> = trigger the remote arrow at grid cell (x,y). dir in {U,D,L,R}.
+# Levels 1-6 are the user-verified solutions supplied at the start of this session.
+# PLACEHOLDER = level has no human-mapped content yet (blank/void grid in the Level Mapper).
+# UNSOLVED = level has real content but was not solved within the search budget used (up to 20s / 300k nodes).
+
+Level 1
+P:L P:D P:L P:D P:L P:L P:L P:D P:L P:L P:L
+Level 2
+P:U P:U A(3,1):R P:U P:R P:R
+Level 3
+P:U P:U P:U A(14,8):U P:R P:D P:D P:D P:R P:R P:U P:U P:U
+Level 4
+P:U P:U P:R P:U P:L P:U P:R P:U
+Level 5
+P:L P:D P:D P:L A(14,2):D P:R P:D A(5,7):U P:L P:D
+Level 6
+P:U P:L P:L P:L P:L P:L A(15,3):L A(5,4):D P:L P:U P:U P:R P:R P:R P:U P:U P:L P:L P:L P:D P:L P:L P:U P:L P:L P:U P:L
+Level 7
+P:D P:D P:R P:D P:D A(11,7):R P:R A(18,3):D P:U A(18,0):D P:U P:L
+Level 8
+P:R P:D P:R A(8,3):D A(9,4):L P:U P:R P:D P:R P:R P:R P:R
+Level 9
+P:R P:R P:R A(10,2):D A(8,4):R P:U A(10,5):D A(10,4):D A(13,6):U P:R P:R A(16,4):L P:R P:U P:U P:R P:R P:R P:D P:R P:D P:D P:L P:D P:D
+Level 10
+A(17,3):L P:R P:R P:D P:L P:U P:U P:D P:L P:D P:R P:U P:U P:U P:L P:L P:L P:L P:D P:D P:D P:L
+Level 11
+P:R P:D P:R P:R P:U P:R P:D P:D A(15,6):L P:R A(12,8):U P:D P:R P:L P:U P:L P:L P:L P:D P:L P:L P:D P:D P:U P:U P:U P:U P:L P:L P:U P:D P:U P:R P:D P:L P:U P:R P:U
+Level 12
+P:D P:L P:L P:L P:L A(0,1):R P:L A(2,0):D P:L P:D A(2,4):R A(7,7):L A(2,10):U P:D A(7,3):L P:R P:D P:R P:L P:U P:L P:U T P:R P:R P:R P:L P:R P:U P:U P:U P:R P:R P:U
+Level 13
+A(5,2):R A(13,2):D A(14,2):L A(5,7):R A(13,7):U A(5,2):R A(12,2):D A(12,7):R A(13,7):U A(12,6):R A(13,3):D A(13,5):R A(13,2):D A(13,5):R P:D P:L P:L
+Level 14
+A(11,2):R A(15,2):U A(11,1):R A(14,1):D A(7,7):R A(14,7):L A(12,7):U P:D P:D P:L A(7,8):R A(7,6):D P:R P:U P:L P:L P:R P:R P:D A(7,9):U P:R P:R P:R P:U P:D P:L P:L A(7,5):D P:L P:U P:U P:U P:U
+Level 15
+P:L P:L P:L A(2,1):D A(1,5):R P:L P:D P:R P:R P:D P:D P:D P:L P:L P:L P:L P:L P:L P:L P:L P:L P:L P:L P:L P:L P:L P:L P:U P:L P:L P:D
+Level 16
+A(6,3):D A(12,6):D A(6,7):R A(11,7):U A(11,6):R A(14,4):D A(14,6):D A(14,7):L A(13,7):U A(13,3):R A(14,3):D A(14,4):L P:R P:R A(14,5):D P:D P:L P:L
+Level 17
+A(11,3):D A(3,5):R A(8,3):D A(5,3):R P:U P:U A(13,2):D A(15,2):D P:L P:D P:D P:L P:D
+Level 18
+UNSOLVED
+Level 19
+UNSOLVED
+Level 20
+UNSOLVED
+Level 21
+UNSOLVED
+Level 22
+A(2,4):R A(7,7):U A(17,6):L A(2,8):R A(8,6):D A(17,8):L A(9,8):U A(17,4):L A(10,4):U A(8,8):R A(9,4):D A(17,8):L P:U P:U P:R P:R
+Level 23
+P:D P:R P:R P:D P:R P:D P:R P:D P:D P:L P:D P:L P:L P:L P:L P:D P:D P:D P:R P:D P:R P:R P:R P:R P:R P:R P:R P:U P:R P:R P:D P:R P:R P:U P:R P:R P:R P:D P:R P:R P:U P:U P:L P:U P:L P:L P:L P:U P:U P:U P:L P:L P:L P:U P:L P:U
+Level 24
+P:U P:U A(9,5):R P:L P:L P:L P:R P:R P:U P:L P:D P:L P:U P:L P:L P:L
+Level 25
+UNSOLVED
+Level 26
+UNSOLVED
+Level 27
+UNSOLVED
+Level 28
+A(9,1):L A(4,6):U A(9,8):L A(8,1):D A(8,7):R A(11,7):D A(10,10):U A(8,8):R A(10,1):D A(10,8):L A(11,8):L A(9,8):D A(8,8):R A(9,9):L A(8,9):U A(8,1):R A(10,1):D A(10,6):L A(4,6):U P:R P:R P:R
+Level 29
+UNSOLVED
+Level 30
+UNSOLVED
+Level 31
+P:R A(9,4):L A(9,5):U P:R P:R P:D A(16,9):L P:R A(10,4):D P:U A(10,3):D P:U P:R P:R P:D P:D
+Level 32
+UNSOLVED
+Level 33
+A(8,1):D A(8,5):L A(11,7):R A(14,9):L A(12,9):L A(5,9):U A(1,5):R A(4,5):U P:D P:D P:R P:D P:R A(5,5):D A(5,9):R A(11,9):U P:L A(11,7):D A(13,9):L A(11,9):U P:R A(11,7):R P:U P:R A(17,7):U A(17,6):L A(12,6):D A(12,7):R P:U A(15,7):U A(15,5):R P:D P:R P:U P:R P:U P:U
+Level 34
+UNSOLVED
+Level 35
+P:D P:R P:D P:D P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:U P:U P:U P:U P:U P:R A(18,4):L P:U P:R P:D P:D P:D
+Level 36
+UNSOLVED
+Level 37
+UNSOLVED
+Level 38
+UNSOLVED
+Level 39
+UNSOLVED
+Level 40
+UNSOLVED
+Level 41
+P:R A(8,3):R A(12,7):U P:R P:U P:D P:U P:U P:L P:L P:L P:D P:D
+Level 42
+UNSOLVED
+Level 43
+A(1,0):D A(19,0):L A(16,0):D A(1,2):R A(2,2):D A(16,2):R A(17,2):D A(2,4):R A(3,4):D A(3,5):R A(17,6):L A(16,6):D A(16,7):L A(15,7):D A(15,10):R P:L P:L P:U P:L P:U P:L P:D P:L P:D A(8,5):D A(8,7):L P:U P:L P:U P:R P:U P:L P:U
+Level 44
+UNSOLVED
+Level 45
+A(6,2):R A(9,2):D A(5,2):R A(14,2):D A(9,4):L A(4,4):D A(14,4):L A(12,4):D A(4,6):R A(9,6):D A(12,7):R A(14,5):D A(14,7):D A(14,8):L A(13,8):U A(13,2):R A(14,2):D A(14,5):L P:R P:D P:L P:D P:L P:L P:U P:L P:U P:R P:D P:D
+Level 46
+P:R P:U A(0,0):R P:L A(6,0):D P:R P:D P:L P:L P:D P:L P:U P:R P:U P:U P:U P:U P:U P:U P:R P:U
+Level 47
+UNSOLVED
+Level 48
+P:R A(13,4):U A(12,4):R A(12,5):U A(14,5):L P:R A(13,1):D P:R P:U P:L P:D P:D P:R P:R P:R
+Level 49
+UNSOLVED
+Level 50
+UNSOLVED
+Level 51
+UNSOLVED
+Level 52
+UNSOLVED
+Level 53
+UNSOLVED
+Level 54
+A(12,4):D A(2,5):R A(11,7):U A(12,7):L A(2,4):D A(1,4):R A(18,8):U A(18,4):L A(18,9):U A(18,6):L A(14,6):U A(14,3):L A(12,3):D A(12,4):L A(2,4):U A(2,3):R A(10,3):D A(10,8):L P:R P:R P:U P:L P:U P:L P:D P:R P:U P:L P:L P:L
+Level 55
+UNSOLVED
+Level 56
+UNSOLVED
+Level 57
+UNSOLVED
+Level 58
+UNSOLVED
+Level 59
+UNSOLVED
+Level 60
+UNSOLVED
+Level 61
+UNSOLVED
+Level 62
+A(16,1):D A(16,10):R P:D P:L P:U P:R P:D P:D
+Level 63
+UNSOLVED
+Level 64
+UNSOLVED
+Level 65
+P:D P:D P:L P:D P:L P:L P:D P:L P:L P:L P:D P:D P:R P:R P:D P:D P:D P:L P:D P:L P:L P:L P:U P:L P:U P:U P:U P:R
+Level 66
+PLACEHOLDER (no mapper content yet)
+Level 67
+
+Level 68
+PLACEHOLDER (no mapper content yet)
+Level 69
+PLACEHOLDER (no mapper content yet)
+Level 70
+PLACEHOLDER (no mapper content yet)
+Level 71
+PLACEHOLDER (no mapper content yet)
+Level 72
+PLACEHOLDER (no mapper content yet)
+Level 73
+PLACEHOLDER (no mapper content yet)
+Level 74
+PLACEHOLDER (no mapper content yet)
+Level 75
+PLACEHOLDER (no mapper content yet)
+Level 76
+PLACEHOLDER (no mapper content yet)
+Level 77
+PLACEHOLDER (no mapper content yet)
+Level 78
+PLACEHOLDER (no mapper content yet)
+Level 79
+PLACEHOLDER (no mapper content yet)
+Level 80
+PLACEHOLDER (no mapper content yet)
+Level 81
+PLACEHOLDER (no mapper content yet)
+Level 82
+PLACEHOLDER (no mapper content yet)
+Level 83
+PLACEHOLDER (no mapper content yet)
+Level 84
+PLACEHOLDER (no mapper content yet)
+Level 85
+PLACEHOLDER (no mapper content yet)
+Level 86
+PLACEHOLDER (no mapper content yet)
+Level 87
+PLACEHOLDER (no mapper content yet)
+Level 88
+PLACEHOLDER (no mapper content yet)
+Level 89
+PLACEHOLDER (no mapper content yet)
+Level 90
+PLACEHOLDER (no mapper content yet)
+Level 91
+PLACEHOLDER (no mapper content yet)
+Level 92
+PLACEHOLDER (no mapper content yet)
+Level 93
+PLACEHOLDER (no mapper content yet)
+Level 94
+PLACEHOLDER (no mapper content yet)
+Level 95
+PLACEHOLDER (no mapper content yet)
+Level 96
+PLACEHOLDER (no mapper content yet)
+Level 97
+PLACEHOLDER (no mapper content yet)
+Level 98
+PLACEHOLDER (no mapper content yet)
+Level 99
+PLACEHOLDER (no mapper content yet)
+Level 100
+PLACEHOLDER (no mapper content yet)
+Level 101
+P:R P:R P:D P:R P:R P:R P:D P:R P:D P:R P:R
+Level 102
+P:D P:D A(6,8):R P:D P:R P:R
+Level 103
+P:D P:D P:D A(5,2):D P:L P:U P:U P:U P:L P:L P:D P:D P:D
+Level 104
+P:U P:U P:L P:U P:R P:U P:L P:U
+Level 105
+P:L P:U P:U P:L A(5,3):R A(14,8):U P:R P:U P:L P:U
+Level 106
+P:R P:D P:R P:R P:R P:R A(14,6):U P:R P:D P:D P:L P:L P:L P:D A(4,7):R P:D P:R P:R P:R P:U P:R P:R P:D P:R P:R P:R P:D
+Level 107
+P:D P:D P:D P:D P:L A(8,7):L P:L A(1,3):D P:U A(1,0):D P:U P:R
+Level 108
+P:R P:U P:R A(9,6):L P:D A(8,7):U P:R P:U P:R P:R P:R P:R
+Level 109
+P:L P:L P:L A(6,4):D A(3,6):R A(9,8):U A(9,5):U A(11,6):L P:D A(9,6):U P:L P:L P:L P:D P:D P:L P:L P:L P:U P:L P:U P:U P:R P:U P:U
+Level 110
+A(2,3):R P:L P:L P:D P:R P:U P:U P:D P:R P:D P:L P:U P:U P:U P:R P:R P:R P:R P:D P:D P:R P:D
+Level 111
+P:U P:R P:R P:R P:R P:D P:U P:U A(15,4):L P:R A(12,2):D P:U P:R P:L P:D P:L P:L P:L P:U P:L P:L P:U P:U P:D P:D P:D P:D P:L P:L P:D P:U P:D P:R P:U P:L P:D P:R P:D
+Level 112
+UNSOLVED
+Level 113
+A(5,2):R A(13,2):D A(14,2):L A(5,7):R A(13,7):U A(5,2):R A(12,2):D A(12,7):R A(13,7):U A(12,6):R A(13,3):D A(13,5):L A(13,2):D A(13,5):L P:D P:R P:R
+Level 114
+A(7,3):R A(11,8):R A(15,8):D A(11,9):R A(14,9):U A(14,3):L A(12,3):D P:U P:U P:L A(7,2):R A(7,4):U P:R P:D P:L P:L P:R P:R P:U A(7,1):D P:R P:R P:R P:D P:U P:L P:L A(7,5):U P:L P:D P:D P:D P:D
+Level 115
+P:R P:R P:R A(18,5):L P:R P:U P:L P:L P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R A(17,9):U P:D P:R P:R P:U
+Level 116
+A(13,3):D A(7,6):D A(13,7):L A(8,7):U A(8,6):L A(5,4):D A(5,6):D A(5,7):R A(6,7):U A(6,3):L A(5,3):D A(5,4):R P:L P:L A(5,5):D P:D P:R P:R
+Level 117
+A(3,5):R A(8,7):U A(11,7):U A(5,7):R P:D P:D A(13,8):U A(15,8):U P:L P:U P:U P:L P:U
+Level 118
+UNSOLVED
+Level 119
+UNSOLVED
+Level 120
+UNSOLVED
+Level 121
+UNSOLVED
+Level 122
+A(17,4):L A(12,7):U A(2,6):R A(17,8):L A(11,6):D A(2,8):R A(10,8):U A(2,4):R A(9,4):U A(11,8):L A(10,4):D A(2,8):R P:U P:U P:R P:R
+Level 123
+P:U P:R P:R P:U P:R P:U P:R P:U P:U P:L P:U P:L P:L P:L P:L P:U P:U P:U P:R P:U P:R P:R P:R P:R P:R P:R P:R P:D P:R P:R P:U P:R P:R P:D P:R P:R P:R P:U P:R P:R P:D P:D P:L P:D P:L P:L P:L P:D P:D P:D P:L P:L P:L P:D P:L P:D
+Level 124
+P:D P:D A(10,5):L P:R P:R P:R P:L P:L P:D P:R P:U P:R P:D P:R P:R P:R
+Level 125
+UNSOLVED
+Level 126
+UNSOLVED
+Level 127
+UNSOLVED
+Level 128
+A(10,1):R A(15,6):U A(10,8):R A(11,1):D A(11,7):L A(8,7):D A(9,10):U A(11,8):L A(9,1):D A(9,8):R A(8,8):R A(10,8):D A(11,8):L A(10,9):R A(11,9):U A(11,1):L A(9,1):D A(9,6):R A(15,6):U P:L P:L P:L
+Level 129
+UNSOLVED
+Level 130
+UNSOLVED
+Level 131
+P:L A(10,4):R A(10,5):U P:L P:L P:D A(3,9):R P:L A(9,4):D P:U A(9,3):D P:U P:L P:L P:D P:D
+Level 132
+UNSOLVED
+Level 133
+UNSOLVED
+Level 134
+UNSOLVED
+Level 135
+P:U P:U P:U P:R P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D P:D P:D P:R A(18,6):L P:D P:R P:U P:U P:U
+Level 136
+UNSOLVED
+Level 137
+UNSOLVED
+Level 138
+UNSOLVED
+Level 139
+UNSOLVED
+Level 140
+UNSOLVED
+Level 141
+P:R A(12,3):D P:R P:D P:U P:D P:D P:L P:L P:R P:L P:U P:U
+Level 142
+UNSOLVED
+Level 143
+A(0,0):R A(3,0):D A(18,0):D A(3,2):L A(2,2):D A(18,2):L A(17,2):D A(17,4):L A(16,4):D A(16,5):L A(2,6):R A(3,6):D A(3,7):R A(4,7):D A(4,10):L P:R P:R P:U P:R P:U P:R P:D P:R P:D A(11,5):D A(11,7):R P:U P:R P:U P:L P:U P:R P:U
+Level 144
+P:R A(15,1):D A(10,2):D P:R P:R A(15,3):R A(15,4):L P:D P:L P:L P:L
+Level 145
+A(8,7):D A(5,8):R A(7,8):U A(7,3):L A(5,5):U A(5,3):U A(5,2):R A(6,2):D A(6,8):L A(5,8):U A(5,5):R P:L P:U P:R P:U P:R P:R A(13,8):L A(10,8):U A(10,6):R A(15,6):U A(15,4):L A(10,4):U P:D P:R A(14,8):L P:D P:L P:U P:U
+Level 146
+P:L P:U A(19,0):L P:R A(13,0):D P:L P:D P:R P:R P:D P:R P:U P:L P:U P:U P:U P:U P:U P:U P:L P:U
+Level 147
+UNSOLVED
+Level 148
+P:L A(6,4):U A(7,4):L A(7,5):U A(5,5):R P:L A(6,1):D P:L P:U P:R P:D P:D P:L P:L P:L
+Level 149
+UNSOLVED
+Level 150
+UNSOLVED
+Level 151
+UNSOLVED
+Level 152
+UNSOLVED
+Level 153
+UNSOLVED
+Level 154
+A(7,6):U A(17,5):L A(8,3):D A(7,3):R A(17,6):U A(18,6):L A(1,2):D A(1,1):D A(1,4):R A(5,4):D A(1,6):R A(5,7):R A(7,7):U A(7,6):R A(17,6):U A(17,5):L A(9,5):U A(9,2):R P:L P:L P:D P:R P:D P:R P:U P:L P:D P:R P:R P:R
+Level 155
+UNSOLVED
+Level 156
+UNSOLVED
+Level 157
+UNSOLVED
+Level 158
+UNSOLVED
+Level 159
+P:R P:R P:R P:R P:D P:D P:D A(7,6):L P:R P:R P:R P:U P:U P:U P:U P:U P:R P:R P:R P:R
+Level 160
+P:R P:R P:R P:D P:D P:D P:D P:D A(6,7):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:D
+Level 161
+P:R P:R P:R P:D P:D P:D P:D P:D A(8,8):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R
+Level 162
+A(16,9):U A(16,0):R P:U P:L P:D P:R P:U P:U
+Level 163
+P:D P:R P:R P:D P:D P:D P:D A(7,7):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:D P:D
+Level 164
+P:R P:R P:R P:R P:R P:D P:D A(8,8):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R
+Level 165
+P:U P:U P:L P:U P:L P:L P:U P:L P:L P:L P:U P:U P:R P:U P:R P:U P:U P:L P:U P:L P:L P:L P:D P:L P:D P:D P:D P:R
+Level 166
+
+Level 167
+P:R P:R P:D P:R P:R P:R P:D P:R P:D P:R P:R
+Level 168
+P:D P:D A(6,8):R P:D P:R P:R
+Level 169
+P:D P:D P:D A(5,2):D P:L P:U P:U P:U P:L P:L P:D P:D P:D
+Level 170
+P:U P:U P:L P:U P:R P:U P:L P:U
+Level 171
+P:L P:U P:U P:L A(5,3):R A(14,8):U P:R P:U P:L P:U
+Level 172
+P:R P:D P:R P:R P:R P:R A(14,6):U P:R P:D P:D P:L P:L P:L P:D A(4,7):R P:D P:R P:R P:R P:U P:R P:R P:D P:R P:R P:R P:D
+Level 173
+P:D P:D P:D P:D P:L A(8,7):L P:L A(1,3):D P:U A(1,0):D P:U P:R
+Level 174
+P:R P:U P:R A(9,6):L P:D A(8,7):U P:R P:U P:R P:R P:R P:R
+Level 175
+P:L P:L P:L A(6,4):D A(3,6):R A(9,8):U A(9,5):U A(11,6):L P:D A(9,6):U P:L P:L P:L P:D P:D P:L P:L P:L P:U P:L P:U P:U P:R P:U P:U
+Level 176
+A(2,3):R P:L P:L P:D P:R P:U P:U P:D P:R P:D P:L P:U P:U P:U P:R P:R P:R P:R P:D P:D P:R P:D
+Level 177
+P:U P:R P:R P:R P:R P:D P:U P:U A(15,4):L P:R A(12,2):D P:U P:R P:L P:D P:L P:L P:L P:U P:L P:L P:U P:U P:D P:D P:D P:D P:L P:L P:D P:U P:D P:R P:U P:L P:D P:R P:D
+Level 178
+P:U P:R P:R P:R P:D P:D A(6,5):L P:R P:R P:R P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R
+Level 179
+A(5,2):R A(13,2):D A(14,2):L A(5,7):R A(13,7):U A(5,2):R A(12,2):D A(12,7):R A(13,7):U A(12,6):R A(13,3):D A(13,5):L A(13,2):D A(13,5):L P:D P:R P:R
+Level 180
+A(7,3):R A(11,8):R A(15,8):D A(11,9):R A(14,9):U A(14,3):L A(12,3):D P:U P:U P:L A(7,2):R A(7,4):U P:R P:D P:L P:L P:R P:R P:U A(7,1):D P:R P:R P:R P:D P:U P:L P:L A(7,5):U P:L P:D P:D P:D P:D
+Level 181
+P:R P:R P:R A(18,5):L P:R P:U P:L P:L P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R A(17,9):U P:D P:R P:R P:U
+Level 182
+A(13,3):D A(7,6):D A(13,7):L A(8,7):U A(8,6):L A(5,4):D A(5,6):D A(5,7):R A(6,7):U A(6,3):L A(5,3):D A(5,4):R P:L P:L A(5,5):D P:D P:R P:R
+Level 183
+A(3,5):R A(8,7):U A(11,7):U A(5,7):R P:D P:D A(13,8):U A(15,8):U P:L P:U P:U P:L P:U
+Level 184
+P:R P:R P:R P:D P:D P:D P:D P:D P:D A(8,8):L P:R P:R P:R P:U P:U P:U P:R P:R P:R P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D
+Level 185
+P:R P:R P:R P:D P:D P:D P:D A(11,8):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D P:D P:D
+Level 186
+P:R P:R P:D P:D P:R P:R P:D A(8,8):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D P:D
+Level 187
+P:R P:R P:R P:D P:D P:D A(8,7):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D
+Level 188
+A(17,4):L A(12,7):U A(2,6):R A(17,8):L A(11,6):D A(2,8):R A(10,8):U A(2,4):R A(9,4):U A(11,8):L A(10,4):D A(2,8):R P:U P:U P:R P:R
+Level 189
+P:U P:R P:R P:U P:R P:U P:R P:U P:U P:L P:U P:L P:L P:L P:L P:U P:U P:U P:R P:U P:R P:R P:R P:R P:R P:R P:R P:D P:R P:R P:U P:R P:R P:D P:R P:R P:R P:U P:R P:R P:D P:D P:L P:D P:L P:L P:L P:D P:D P:D P:L P:L P:L P:D P:L P:D
+Level 190
+P:D P:D A(10,5):L P:R P:R P:R P:L P:L P:D P:R P:U P:R P:D P:R P:R P:R
+Level 191
+P:R P:R P:D P:D P:D A(8,7):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D
+Level 192
+P:R P:R P:R P:R P:R P:D P:D P:D P:D P:D P:D A(8,8):L P:R P:R P:R P:U P:U P:U P:U P:R P:R P:R P:R P:R
+Level 193
+P:U P:R P:R P:R P:D P:D A(10,7):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:D P:D
+Level 194
+A(10,1):R A(15,6):U A(10,8):R A(11,1):D A(11,7):L A(8,7):D A(9,10):U A(11,8):L A(9,1):D A(9,8):R A(8,8):R A(10,8):D A(11,8):L A(10,9):R A(11,9):U A(11,1):L A(9,1):D A(9,6):R A(15,6):U P:L P:L P:L
+Level 195
+P:R P:R P:R P:R P:R P:D P:D P:D A(11,5):L P:R P:R P:R P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:R
+Level 196
+P:R P:R P:R P:D A(6,7):L P:R P:R P:R P:U P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:R P:D P:D P:D P:D
+Level 197
+P:L A(10,4):R A(10,5):U P:L P:L P:D A(3,9):R P:L A(9,4):D P:U A(9,3):D P:U P:L P:L P:D P:D
+Level 198
+P:R P:R P:R P:D P:D P:D P:D A(7,6):L P:R P:R P:R P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:D P:D P:D
+Level 199
+A(7,1):L A(6,1):R A(8,3):L A(11,9):U A(11,5):R A(14,1):D A(18,5):L A(14,5):U A(14,1):L A(8,1):D A(8,3):L A(15,5):D P:U P:U P:L P:U P:L P:D P:L A(2,3):D A(2,4):R A(7,4):U A(7,3):L P:D A(4,3):D A(4,5):L P:U P:L P:D P:L P:D P:D
+Level 200
+P:R P:R P:R P:R P:R P:D P:D A(10,8):L P:R P:R P:R P:U P:U P:R P:U P:U P:U P:U P:U P:R P:R P:R P:R P:R P:R P:D P:D
+
+# Summary: 200 levels total. 85 solved, 34 placeholder (blank), 81 unsolved (real content, budget exceeded).
+# Placeholder level IDs: 66, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100
+# Unsolved level IDs: 12, 18, 19, 20, 21, 25, 26, 27, 29, 30, 32, 33, 34, 36, 37, 38, 39, 40, 42, 44, 47, 49, 50, 51, 52, 53, 55, 56, 57, 58, 59, 60, 61, 63, 64, 112, 118, 119, 120, 121, 125, 126, 127, 129, 130, 132, 133, 134, 136, 137, 138, 139, 140, 142, 147, 149, 150, 151, 152, 153, 155, 156, 157, 158, 159, 160, 161, 163, 164, 178, 184, 185, 186, 187, 191, 192, 193, 195, 196, 198, 200

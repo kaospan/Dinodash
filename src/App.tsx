@@ -1,0 +1,109 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Component, ErrorInfo, ReactNode, useState, useEffect } from "react";
+import { supabase, type DbLevel } from "@/lib/supabaseClient";
+import Index from "./pages/Index";
+import Crm from "./pages/Crm";
+import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
+import Dinodash3D from "./pages/Dinodash3D";
+
+const queryClient = new QueryClient();
+
+const devLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) console.log(...args);
+};
+
+// Error Boundary Component
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error('🔥 ErrorBoundary caught error:', error);
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('🔥 ErrorBoundary componentDidCatch:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', fontFamily: 'monospace', color: 'red' }}>
+          <h1>🚨 Something went wrong</h1>
+          {import.meta.env.DEV ? (
+            <>
+              <p><strong>Error:</strong> {this.state.error?.message}</p>
+              <pre>{this.state.error?.stack}</pre>
+            </>
+          ) : (
+            <p>Please refresh the page. If the problem persists, contact support.</p>
+          )}
+          <button onClick={() => window.location.reload()}>Reload Page</button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+devLog('📦 App.tsx loading...');
+
+const App = () => {
+  devLog('⚛️ App component rendering...');
+
+  const [dbLevels, setDbLevels] = useState<DbLevel[]>([]);
+
+  useEffect(() => {
+    async function getLevels() {
+      if (!supabase) return;
+      const { data: levels } = await supabase.from('levels').select();
+      if (levels) {
+        setDbLevels(levels as DbLevel[]);
+        devLog(`[supabase] ${levels.length} levels loaded from DB`);
+        if (import.meta.env.DEV) {
+          // Expose on window for debug access in the browser console.
+          (window as Window & { dbLevels?: DbLevel[] }).dbLevels = levels as DbLevel[];
+        }
+      }
+    }
+    getLevels();
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/3d" element={<Dinodash3D />} />
+              <Route path="/mapper" element={<Index />} />
+              <Route path="/crm" element={<Crm />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
+
+devLog('✅ App.tsx loaded');
+
+export default App;

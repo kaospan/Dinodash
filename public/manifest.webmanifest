@@ -1,0 +1,14 @@
+{
+  "name": "Dinodash",
+  "short_name": "Dinodash",
+  "start_url": "./",
+  "display": "standalone",
+  "description": "Dinodash puzzle game",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
