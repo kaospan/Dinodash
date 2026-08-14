@@ -1,4 +1,4 @@
-export type TileType='floor'|'wall'|'goal'|'start'|'void'|'rock'|'platform'|'key-red'|'key-green'|'lock-red'|'lock-green'|'teleport'|'bonus-time';
+export type TileType='floor'|'wall'|'water'|'goal'|'start'|'void'|'rock'|'platform'|'key-red'|'key-green'|'lock-red'|'lock-green'|'teleport'|'bonus-time';
 export type Move3DDirection='up'|'right'|'down'|'left';
 export type Position3D={x:number;y:number;height:number};
 export type Cell3D={x:number;y:number;height:number;type:TileType;sourceTile?:number};
