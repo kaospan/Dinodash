@@ -1,5 +1,4 @@
 import LevelMapper from "@/components/LevelMapper";
-import { MapperAuthGate } from "@/components/MapperAuthGate";
 import { Dinodash3DStable } from "@/components/Dinodash3DStable";
 import { PuzzleGame } from "@/components/PuzzleGame";
 import bgImage from "@/assets/stone-age-bg.png";
@@ -16,7 +15,7 @@ const Index = () => {
       <div className="absolute inset-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 40%), radial-gradient(circle at 80% 30%, rgba(255,220,170,0.08), transparent 45%), linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.35) 100%)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
       <div className="absolute inset-0 bg-blue-900/40 scanline" />
       <div className="relative z-10 h-full w-full">
-        {showMapper ? <MapperAuthGate><LevelMapper /></MapperAuthGate> : showLegacy2D ? <PuzzleGame /> : <Dinodash3DStable />}
+        {showMapper ? <LevelMapper /> : showLegacy2D ? <PuzzleGame /> : <Dinodash3DStable />}
       </div>
     </div>
   );
