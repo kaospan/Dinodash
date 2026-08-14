@@ -11,6 +11,7 @@ export function build3DLevel(id:number,grid:number[][],playerStart:{x:number;y:n
   const t=compressed.tiles[y][x];
   if(t.kind==='void')cells.push({x,y,height:0,type:'void'});
   else if(t.kind==='wall')cells.push({x,y,height:3,type:'wall'});
+  else if(t.kind==='water')cells.push({x,y,height:0,type:'water'});
   else if(t.kind==='stone'){cells.push({x,y,height:t.height,type:'rock'});rocks.push({x,y,height:t.height,breakable:false});}
   else if(t.kind==='breakable'){cells.push({x,y,height:t.height,type:'rock'});rocks.push({x,y,height:t.height,breakable:true});}
   else if(t.kind==='goal')cells.push({x,y,height:1,type:'goal'});
