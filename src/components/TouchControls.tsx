@@ -1,84 +1,69 @@
 import type { RefObject } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { Camera, Move3D } from "lucide-react";
+import { CAMERA_MODE_EVENT } from "@/hooks/useCameraGestures";
 
 interface TouchControlsProps {
   onMove: (dx: number, dy: number) => void;
   disabled?: boolean;
-  /**
-   * Element to attach the touch listeners to. Prefer passing a stable ref to the game surface,
-   * rather than querying for a canvas (SPR view has no canvas).
-   */
   targetRef?: RefObject<HTMLElement | null>;
 }
 
 export const TouchControls = ({ onMove, disabled, targetRef }: TouchControlsProps) => {
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [cameraMode, setCameraMode] = useState(false);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-
-    const targetEl =
-      targetRef?.current ??
-      (document.querySelector("[data-touch-controls-target]") as HTMLElement | null) ??
-      (document.querySelector("canvas") as HTMLElement | null);
-
+    const targetEl = targetRef?.current ?? (document.querySelector("[data-touch-controls-target]") as HTMLElement | null) ?? (document.querySelector("canvas") as HTMLElement | null);
     if (!targetEl) return;
 
+    let touchStart: { x: number; y: number } | null = null;
     const handleTouchStart = (e: TouchEvent) => {
-      if (disabled) return;
-      if (e.touches.length !== 1) return;
-
+      if (disabled || cameraMode || e.touches.length !== 1) return;
       const touch = e.touches[0];
-      touchStartRef.current = {
-        x: touch.clientX,
-        y: touch.clientY,
-      };
+      touchStart = { x: touch.clientX, y: touch.clientY };
     };
-
     const handleTouchEnd = (e: TouchEvent) => {
-      if (disabled || !touchStartRef.current) return;
-      if (e.changedTouches.length < 1) return;
-
+      if (disabled || cameraMode || !touchStart || e.changedTouches.length < 1) return;
       const touch = e.changedTouches[0];
-      const deltaX = touch.clientX - touchStartRef.current.x;
-      const deltaY = touch.clientY - touchStartRef.current.y;
-
-      // Minimum swipe distance to register
-      const minSwipeDistance = 30;
-
-      // Calculate total distance moved
-      const totalDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-      // Only trigger movement if it's a clear swipe (moved enough distance)
-      // This allows taps (little to no movement) to pass through to 3D objects.
-      if (totalDistance >= minSwipeDistance) {
-        // Determine direction based on larger delta.
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          // Horizontal swipe
-          onMove(deltaX > 0 ? 1 : -1, 0);
-        } else {
-          // Vertical swipe
-          onMove(0, deltaY > 0 ? 1 : -1);
-        }
+      const deltaX = touch.clientX - touchStart.x;
+      const deltaY = touch.clientY - touchStart.y;
+      const distance = Math.hypot(deltaX, deltaY);
+      if (distance >= 30) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) onMove(deltaX > 0 ? 1 : -1, 0);
+        else onMove(0, deltaY > 0 ? 1 : -1);
       }
-
-      touchStartRef.current = null;
+      touchStart = null;
     };
-
-    const handleTouchCancel = () => {
-      touchStartRef.current = null;
-    };
+    const handleTouchCancel = () => { touchStart = null; };
 
     targetEl.addEventListener("touchstart", handleTouchStart, { passive: true });
     targetEl.addEventListener("touchend", handleTouchEnd, { passive: true });
     targetEl.addEventListener("touchcancel", handleTouchCancel, { passive: true });
-
     return () => {
       targetEl.removeEventListener("touchstart", handleTouchStart);
       targetEl.removeEventListener("touchend", handleTouchEnd);
       targetEl.removeEventListener("touchcancel", handleTouchCancel);
     };
-  }, [onMove, disabled, targetRef]);
+  }, [onMove, disabled, targetRef, cameraMode]);
 
-  return null;
+  const toggleCameraMode = () => {
+    const enabled = !cameraMode;
+    setCameraMode(enabled);
+    window.dispatchEvent(new CustomEvent(CAMERA_MODE_EVENT, { detail: { enabled } }));
+  };
+
+  return (
+    <button
+      type="button"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={toggleCameraMode}
+      aria-label={cameraMode ? "Camera mode on — swipe rotates camera, pinch zooms" : "Camera mode off — swipe moves Dino, pinch zoom locked"}
+      aria-pressed={cameraMode}
+      title={cameraMode ? "Camera: ON — swipe rotates, pinch zooms" : "Camera: OFF — swipe moves Dino"}
+      className={`fixed bottom-4 right-4 z-[80] flex h-12 w-12 items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition-all ${cameraMode ? "border-amber-300/80 bg-amber-500/90 text-black" : "border-white/25 bg-black/65 text-white"}`}
+    >
+      {cameraMode ? <Camera className="h-5 w-5" /> : <Move3D className="h-5 w-5" />}
+    </button>
+  );
 };
