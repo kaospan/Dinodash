@@ -1,0 +1,56 @@
+name: Sync phoneagev3 reference architecture
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync proven phoneagev3 gameplay architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/phoneagev3
+          git clone --depth 1 https://github.com/kaospan/phoneagev3.git /tmp/phoneagev3
+          files=(
+            src/components/PuzzleGame.tsx
+            src/components/GameFPS.tsx
+            src/components/ViewModeSwitcher.tsx
+            src/components/CampaignDialog.tsx
+            src/shell/GameHudTop.tsx
+            src/hooks/useGameEngine.ts
+            src/hooks/useGameControls.ts
+            src/hooks/useCameraGestures.ts
+            src/hooks/useGameTimerSession.ts
+          )
+          for f in "${files[@]}"; do
+            test -f "/tmp/phoneagev3/$f"
+            mkdir -p "$(dirname "$f")"
+            cp "/tmp/phoneagev3/$f" "$f"
+          done
+          node <<'NODE'
+          const fs = require('fs');
+          const target = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const source = JSON.parse(fs.readFileSync('/tmp/phoneagev3/package.json', 'utf8'));
+          for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+            target[section] ??= {};
+            for (const [name, version] of Object.entries(source[section] ?? {})) {
+              if (!(name in target[section])) target[section][name] = version;
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(target, null, 2) + '\n');
+          NODE
+          npm install --package-lock-only
+          npm test -- --run
+          npm run build
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/PuzzleGame.tsx src/components/GameFPS.tsx src/components/ViewModeSwitcher.tsx src/components/CampaignDialog.tsx src/shell/GameHudTop.tsx src/hooks/useGameEngine.ts src/hooks/useGameControls.ts src/hooks/useCameraGestures.ts src/hooks/useGameTimerSession.ts package.json package-lock.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'sync Dinodash gameplay architecture from phoneagev3'
+          git push
