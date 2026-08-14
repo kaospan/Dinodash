@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from "react";
 import LevelMapper from "@/components/LevelMapper";
 import { Dinodash3D } from "@/components/Dinodash3D";
 import { PuzzleGame } from "@/components/PuzzleGame";
@@ -7,15 +7,38 @@ import { useLocation } from "react-router-dom";
 const canUseWebGL = () => {
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(
-      canvas.getContext("webgl2") ||
-      canvas.getContext("webgl") ||
-      canvas.getContext("experimental-webgl" as never)
-    );
+    const attrs = { alpha: true, antialias: true, depth: true, stencil: false };
+    const gl =
+      canvas.getContext("webgl2", attrs) ??
+      canvas.getContext("webgl", attrs) ??
+      canvas.getContext("experimental-webgl", attrs as never);
+    if (!gl) return false;
+    const context = gl as WebGLRenderingContext;
+    return !context.isContextLost();
   } catch {
     return false;
   }
 };
+
+class ThreeDErrorBoundary extends Component<
+  { children: ReactNode; onFailure: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Dinodash 3D runtime failure; falling back to 2D", error, info);
+    this.props.onFailure();
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 const Index = () => {
   const location = useLocation();
@@ -24,8 +47,6 @@ const Index = () => {
   const showLegacy2D = location.search.includes("2d");
 
   useEffect(() => {
-    // Detect WebGL before mounting react-three-fiber. On devices/browsers where WebGL
-    // is unavailable, keep the game usable instead of leaving a black/empty canvas.
     setWebglReady(canUseWebGL());
   }, []);
 
@@ -44,7 +65,9 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          <Dinodash3D />
+          <ThreeDErrorBoundary onFailure={() => setWebglReady(false)}>
+            <Dinodash3D />
+          </ThreeDErrorBoundary>
         )}
       </div>
     </div>
