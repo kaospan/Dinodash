@@ -1,0 +1,81 @@
+name: Fix Dino camera focus
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-camera:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch camera target
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/components/Dinodash3D.tsx')
+          text = path.read_text()
+
+          if '/* DINO_CAMERA_FOLLOW */' in text:
+              print('Camera follow patch already present.')
+              raise SystemExit(0)
+
+          replacement = r'''/* DINO_CAMERA_FOLLOW */
+          function Camera({l,player,topDown}:{l:Level;player:[number,number];topDown:boolean}){
+            const {size}=useThree();
+            const controls=useRef<any>(null);
+            const boardCenter=useMemo(()=>new THREE.Vector3((l.cols-1)*S/2,0,(l.rows-1)*S/2),[l]);
+            const fov=42*Math.PI/180;
+            const fit=Math.max(l.cols*S/(2*Math.tan(fov/2)*(size.width/Math.max(1,size.height))),l.rows*S/(2*Math.tan(fov/2)))*1.15;
+            const max=Math.max(6,fit);
+            const dinoTarget=useMemo(()=>new THREE.Vector3(player[0]*S,.35,player[1]*S),[player]);
+            const isoDirection=new THREE.Vector3(.72,.9,.72).normalize();
+            const cameraPosition=useMemo(()=>dinoTarget.clone().add(isoDirection.clone().multiplyScalar(max)),[dinoTarget,max]);
+            useFrame((_,dt)=>{
+              if(!controls.current)return;
+              const target=topDown?boardCenter:dinoTarget;
+              controls.current.target.lerp(target,Math.min(1,dt*8));
+              if(!topDown){
+                const offset=controls.current.object.position.clone().sub(controls.current.target);
+                const distance=offset.length();
+                if(distance>0){
+                  const desired=dinoTarget.clone().add(offset.normalize().multiplyScalar(distance));
+                  controls.current.object.position.lerp(desired,Math.min(1,dt*8));
+                }
+              }
+              controls.current.update();
+            });
+            const top=[boardCenter.x,max*1.15,boardCenter.z+.001] as [number,number,number];
+            return <><PerspectiveCamera makeDefault position={topDown?top:cameraPosition.toArray()} fov={42}/><OrbitControls ref={controls} target={topDown?boardCenter:dinoTarget} enablePan={false} enableRotate={true} minPolarAngle={0.08} maxPolarAngle={Math.PI/2-.04} enableZoom minDistance={Math.max(2.5,max*.35)} maxDistance={max} enableDamping dampingFactor={.08}/></>;
+          }
+          '''
+
+          pattern = r'function Camera\(\{l,topDown\}:\{l:Level;topDown:boolean\}\).*?(?=export function Dinodash3D)'
+          new_text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Could not locate the current Camera function; no changes made.')
+          path.write_text(new_text)
+          PY
+
+      - name: Commit camera fix
+        shell: bash
+        run: |
+          if git diff --quiet -- src/components/Dinodash3D.tsx; then
+            echo "No camera change needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/Dinodash3D.tsx
+          git commit -m "Fix 3D camera to follow Dino"
+          git push
