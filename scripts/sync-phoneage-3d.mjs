@@ -1,7 +1,6 @@
 import fs from 'node:fs/promises';
 
 const LEVELS_SOURCE='https://raw.githubusercontent.com/kaospan/phoneage/main/src/data/levels.ts';
-const PROMOTED_SOURCE='https://raw.githubusercontent.com/kaospan/phoneage/main/src/data/promoted-levels.json';
 const TARGET='src/game3d/levels3d.ts';
 const ORIGINAL_LEVEL_COUNT=100;
 
@@ -30,8 +29,8 @@ function normalizeGrid(grid){
   return grid;
 }
 
-function validateLevels(levels, sourceName){
-  if(!Array.isArray(levels)||levels.length!==ORIGINAL_LEVEL_COUNT) throw new Error(`Expected exactly ${ORIGINAL_LEVEL_COUNT} original Phoneage levels from ${sourceName}, got ${levels?.length??0}`);
+function validateLevels(levels){
+  if(!Array.isArray(levels)||levels.length!==ORIGINAL_LEVEL_COUNT) throw new Error(`Expected exactly ${ORIGINAL_LEVEL_COUNT} original Phoneage levels, got ${levels?.length??0}`);
   const ids=new Set();
   for(const level of levels){
     if(!Number.isInteger(level.id)||level.id<1||level.id>ORIGINAL_LEVEL_COUNT) throw new Error(`Invalid original level id ${level.id}`);
@@ -45,58 +44,18 @@ function validateLevels(levels, sourceName){
   return levels.sort((a,b)=>a.id-b.id);
 }
 
-function selectOriginalLevels(levels, sourceName){
-  if(!Array.isArray(levels)) throw new Error(`${sourceName} did not contain an array`);
-  const originals=levels.filter(level=>Number.isInteger(level?.id)&&level.id>=1&&level.id<=ORIGINAL_LEVEL_COUNT);
-  return validateLevels(originals,sourceName);
-}
-
 async function fetchText(url){
   const response=await fetch(url,{cache:'no-store'});
   if(!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
   return response.text();
 }
 
-async function loadLevels(){
-  let snapshotError=null;
-  try{
-    const snapshot=JSON.parse(await fetchText(PROMOTED_SOURCE));
-    return selectOriginalLevels(snapshot,'promoted-levels.json');
-  }catch(error){
-    snapshotError=error;
-  }
-
-  let primaryError=null;
-  try{
-    const source=await fetchText(LEVELS_SOURCE);
-    if(!source.includes('Legend:')) throw new Error('Phoneage source validation failed');
-    const expression=extractArray(source,'const baseManualLevels: Level[] =');
-    const levels=Function(`"use strict"; return (${expression});`)();
-    return selectOriginalLevels(levels,'levels.ts');
-  }catch(error){
-    primaryError=error;
-  }
-
-  throw new Error(`Phoneage synchronization failed. Snapshot: ${snapshotError?.message ?? 'unknown error'}. levels.ts: ${primaryError?.message ?? 'unknown error'}`);
-}
-
-let levels;
-try{
-  levels=await loadLevels();
-}catch(error){
-  // CI must remain reproducible when the upstream Phoneage repository is
-  // temporarily unavailable. The checked-in generated campaign is the last
-  // known-good artifact; do not destroy it by writing partial/empty data.
-  try{
-    await fs.access(TARGET);
-    console.warn(`Phoneage synchronization unavailable; preserving checked-in ${TARGET}. ${error instanceof Error?error.message:String(error)}`);
-    process.exit(0);
-  }catch{
-    throw error;
-  }
-}
+const source=await fetchText(LEVELS_SOURCE);
+if(!source.includes('Legend:')) throw new Error('Phoneage source validation failed: missing tile legend');
+const expression=extractArray(source,'const baseManualLevels: Level[] =');
+const levels=validateLevels(Function(`"use strict"; return (${expression});`)());
 
 const payload=JSON.stringify(levels,null,2);
-const output=`// GENERATED FROM kaospan/phoneage authoritative original campaign data. DO NOT HAND EDIT.\nimport { build3DLevel } from './levelPipeline';\n\nconst SOURCE_LEVELS = ${payload} as const;\n\nexport const levels3D = SOURCE_LEVELS.map(source => {\n  const result = build3DLevel(source.id, source.grid as number[][], source.playerStart, source.cavePos);\n  if (result.warnings.length) throw new Error(\`Level ${'${source.id}'} rejected: ${'${result.warnings.join("; ")}' }\`);\n  return { ...result.level, name: \`Level ${'${source.id}'}\` };\n});\n\nexport const level3DCount = levels3D.length;\nif (level3DCount !== ${ORIGINAL_LEVEL_COUNT}) throw new Error(\`Dinodash requires ${ORIGINAL_LEVEL_COUNT} source levels, got ${'${level3DCount}'}\`);\n`;
+const output=`// GENERATED FROM kaospan/phoneage authoritative original campaign data. DO NOT HAND EDIT.\nimport { build3DLevel } from './levelPipeline';\n\nconst SOURCE_LEVELS = ${payload} as const;\n\nexport const levels3D = SOURCE_LEVELS.map(source => {\n  const result = build3DLevel(source.id, source.grid as number[][], source.playerStart, source.cavePos);\n  if (result.warnings.length) throw new Error(\`Level ${'${source.id}'} rejected: ${'${result.warnings.join("; ")}' }\`);\n  return { ...result.level, name: \`Level ${'${source.id}'}\` };\n});\n\nexport const level3DCount = levels3D.length;\nexport async function loadCampaignLevels3D(){ return levels3D; }\nif (level3DCount !== ${ORIGINAL_LEVEL_COUNT}) throw new Error(\`Dinodash requires ${ORIGINAL_LEVEL_COUNT} source levels, got ${'${level3DCount}'}\`);\n`;
 await fs.writeFile(TARGET,output);
 console.log(`Synced ${levels.length} authoritative Phoneage original levels into ${TARGET}`);
