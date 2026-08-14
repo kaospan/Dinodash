@@ -26,27 +26,21 @@ function extractArray(source, marker){
 
 function normalizeGrid(grid){
   if(!Array.isArray(grid)) return grid;
-  // Phoneage may temporarily serialize a 12-row screenshot grid with a final
-  // all-void row. The playable campaign format is 11x20.
-  if(grid.length===12 && Array.isArray(grid[11]) && grid[11].length===20 && grid[11].every(cell=>cell===5)){
-    return grid.slice(0,-1);
-  }
+  if(grid.length===12 && Array.isArray(grid[11]) && grid[11].length===20 && grid[11].every(cell=>cell===5)) return grid.slice(0,-1);
   return grid;
 }
 
 function validateLevels(levels, sourceName){
-  if(!Array.isArray(levels)||levels.length!==ORIGINAL_LEVEL_COUNT){
-    throw new Error(`Expected exactly ${ORIGINAL_LEVEL_COUNT} original Phoneage levels from ${sourceName}, got ${levels?.length??0}`);
-  }
+  if(!Array.isArray(levels)||levels.length!==ORIGINAL_LEVEL_COUNT) throw new Error(`Expected exactly ${ORIGINAL_LEVEL_COUNT} original Phoneage levels from ${sourceName}, got ${levels?.length??0}`);
   const ids=new Set();
   for(const level of levels){
-    if(!Number.isInteger(level.id)||level.id<1||level.id>ORIGINAL_LEVEL_COUNT)throw new Error(`Invalid original level id ${level.id}`);
-    if(ids.has(level.id))throw new Error(`Duplicate original level id ${level.id}`);
+    if(!Number.isInteger(level.id)||level.id<1||level.id>ORIGINAL_LEVEL_COUNT) throw new Error(`Invalid original level id ${level.id}`);
+    if(ids.has(level.id)) throw new Error(`Duplicate original level id ${level.id}`);
     ids.add(level.id);
     level.grid=normalizeGrid(level.grid);
-    if(!Array.isArray(level.grid)||level.grid.length!==11||level.grid.some(r=>!Array.isArray(r)||r.length!==20))throw new Error(`Level ${level.id} is not 11x20`);
-    for(const row of level.grid)for(const cell of row)if(!Number.isInteger(cell)||cell<0||cell>20)throw new Error(`Level ${level.id} has invalid tile ${cell}`);
-    if(!level.playerStart||!level.cavePos)throw new Error(`Level ${level.id} missing start/goal`);
+    if(!Array.isArray(level.grid)||level.grid.length!==11||level.grid.some(r=>!Array.isArray(r)||r.length!==20)) throw new Error(`Level ${level.id} is not 11x20`);
+    for(const row of level.grid) for(const cell of row) if(!Number.isInteger(cell)||cell<0||cell>20) throw new Error(`Level ${level.id} has invalid tile ${cell}`);
+    if(!level.playerStart||!level.cavePos) throw new Error(`Level ${level.id} missing start/goal`);
   }
   return levels.sort((a,b)=>a.id-b.id);
 }
@@ -64,10 +58,6 @@ async function fetchText(url){
 }
 
 async function loadLevels(){
-  // promoted-levels.json is the data-only authoritative snapshot. It contains
-  // the original campaign alongside later generated levels, so select only 1-100.
-  // This avoids evaluating TypeScript source and prevents an intermediate levels.ts
-  // refactor from making CI believe the original campaign is empty.
   let snapshotError=null;
   try{
     const snapshot=JSON.parse(await fetchText(PROMOTED_SOURCE));
@@ -76,7 +66,6 @@ async function loadLevels(){
     snapshotError=error;
   }
 
-  // Keep levels.ts as a diagnostic fallback if the snapshot endpoint is unavailable.
   let primaryError=null;
   try{
     const source=await fetchText(LEVELS_SOURCE);
@@ -91,7 +80,22 @@ async function loadLevels(){
   throw new Error(`Phoneage synchronization failed. Snapshot: ${snapshotError?.message ?? 'unknown error'}. levels.ts: ${primaryError?.message ?? 'unknown error'}`);
 }
 
-const levels=await loadLevels();
+let levels;
+try{
+  levels=await loadLevels();
+}catch(error){
+  // CI must remain reproducible when the upstream Phoneage repository is
+  // temporarily unavailable. The checked-in generated campaign is the last
+  // known-good artifact; do not destroy it by writing partial/empty data.
+  try{
+    await fs.access(TARGET);
+    console.warn(`Phoneage synchronization unavailable; preserving checked-in ${TARGET}. ${error instanceof Error?error.message:String(error)}`);
+    process.exit(0);
+  }catch{
+    throw error;
+  }
+}
+
 const payload=JSON.stringify(levels,null,2);
 const output=`// GENERATED FROM kaospan/phoneage authoritative original campaign data. DO NOT HAND EDIT.\nimport { build3DLevel } from './levelPipeline';\n\nconst SOURCE_LEVELS = ${payload} as const;\n\nexport const levels3D = SOURCE_LEVELS.map(source => {\n  const result = build3DLevel(source.id, source.grid as number[][], source.playerStart, source.cavePos);\n  if (result.warnings.length) throw new Error(\`Level ${'${source.id}'} rejected: ${'${result.warnings.join("; ")}' }\`);\n  return { ...result.level, name: \`Level ${'${source.id}'}\` };\n});\n\nexport const level3DCount = levels3D.length;\nif (level3DCount !== ${ORIGINAL_LEVEL_COUNT}) throw new Error(\`Dinodash requires ${ORIGINAL_LEVEL_COUNT} source levels, got ${'${level3DCount}'}\`);\n`;
 await fs.writeFile(TARGET,output);
