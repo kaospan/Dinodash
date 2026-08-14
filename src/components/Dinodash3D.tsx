@@ -15,8 +15,33 @@ function Dino({p,selected,happy,bonk}:{p:Position3D;selected:boolean;happy:boole
  return <group ref={g}><group ref={body}><mesh castShadow position={[0,.2,0]}><capsuleGeometry args={[.2,.3,6,14]}/><meshStandardMaterial color="#70c96b"/></mesh><mesh castShadow position={[0,.5,-.02]}><sphereGeometry args={[.21,24,16]}/><meshStandardMaterial color="#9be38c"/></mesh><mesh ref={eye1} position={[.075,.55,-.19]}><sphereGeometry args={[.037,12,10]}/><meshStandardMaterial color="#162016"/></mesh><mesh ref={eye2} position={[-.075,.55,-.19]}><sphereGeometry args={[.037,12,10]}/><meshStandardMaterial color="#162016"/></mesh><mesh ref={jaw} position={[0,.42,-.22]}><boxGeometry args={[.18,.045,.08]}/><meshStandardMaterial color="#65b961"/></mesh><mesh ref={tail} position={[0,.2,.27]}><capsuleGeometry args={[.055,.38,5,10]}/><meshStandardMaterial color="#5eae5a"/></mesh></group>{selected&&<mesh position={[0,.025,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.29,.38,28]}/><meshBasicMaterial color="#ffffff"/></mesh>}</group>;
 }
 
-function Camera({level,player,topDown}:{level:Level3D;player:Position3D;topDown:boolean}){const {size}=useThree();const controls=useRef<any>(null);const center=useMemo(()=>new THREE.Vector3((level.width-1)*S/2,0,(level.depth-1)*S/2),[level]);const target=useMemo(()=>new THREE.Vector3(player.x*S,.4,player.y*S),[player]);const fov=42*Math.PI/180;const fit=Math.max(level.width*S/(2*Math.tan(fov/2)*Math.max(.5,size.width/Math.max(1,size.height))),level.depth*S/(2*Math.tan(fov/2)))*1.2;const dist=Math.max(5,fit);useFrame((_,dt)=>{if(!controls.current)return;const t=topDown?center:target;controls.current.target.lerp(t,Math.min(1,dt*8));controls.current.update()});const iso=target.clone().add(new THREE.Vector3(.75,.9,.75).normalize().multiplyScalar(dist));return <><PerspectiveCamera makeDefault position={topDown?[center.x,dist*1.15,center.z+.01]:iso.toArray()} fov={42}/><OrbitControls ref={controls} target={topDown?center:target} enablePan={false} enableDamping dampingFactor={.08} minPolarAngle={.08} maxPolarAngle={Math.PI/2-.035} minDistance={Math.max(2.5,dist*.35)} maxDistance={dist}/></>}
-
+/* DINO_CAMERA_FOLLOW */
+function Camera({level,player,topDown}:{level:Level3D;player:Position3D;topDown:boolean}){
+  const {size}=useThree();
+  const controls=useRef<any>(null);
+  const center=useMemo(()=>new THREE.Vector3((level.width-1)*S/2,0,(level.depth-1)*S/2),[level]);
+  const target=useMemo(()=>new THREE.Vector3(player.x*S,.4,player.y*S),[player]);
+  const fov=42*Math.PI/180;
+  const fit=Math.max(level.width*S/(2*Math.tan(fov/2)*Math.max(.5,size.width/Math.max(1,size.height))),level.depth*S/(2*Math.tan(fov/2)))*1.2;
+  const dist=Math.max(5,fit);
+  const iso=useMemo(()=>new THREE.Vector3(.75,.9,.75).normalize(),[]);
+  useFrame((_,dt)=>{
+    if(!controls.current)return;
+    const t=topDown?center:target;
+    controls.current.target.lerp(t,Math.min(1,dt*8));
+    if(!topDown){
+      const offset=controls.current.object.position.clone().sub(controls.current.target);
+      const distance=offset.length();
+      if(distance>0){
+        const desired=target.clone().add(offset.normalize().multiplyScalar(distance));
+        controls.current.object.position.lerp(desired,Math.min(1,dt*8));
+      }
+    }
+    controls.current.update();
+  });
+  const cameraPosition=target.clone().add(iso.clone().multiplyScalar(dist));
+  return <><PerspectiveCamera makeDefault position={topDown?[center.x,dist*1.15,center.z+.01]:cameraPosition.toArray()} fov={42}/><OrbitControls ref={controls} target={topDown?center:target} enablePan={false} enableRotate enableDamping dampingFactor={.08} minPolarAngle={.08} maxPolarAngle={Math.PI/2-.035} minDistance={Math.max(2.5,dist*.35)} maxDistance={dist}/></>;
+}
 function ArrowPlatform({platform,selected,onClick}:{platform:Platform3D;selected:boolean;onClick:()=>void}){
  const arrow=useRef<THREE.Mesh>(null);
  useFrame(({clock})=>{if(!arrow.current)return;const pulse=selected?(1+Math.sin(clock.getElapsedTime()*6)*.18):1;arrow.current.scale.setScalar(pulse)});
