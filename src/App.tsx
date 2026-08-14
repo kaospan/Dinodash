@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import Crm from "./pages/Crm";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import Dinodash3D from "./pages/Dinodash3D";
+import { Dinodash3D } from "./components/Dinodash3D";
 
 const queryClient = new QueryClient();
 
@@ -17,66 +17,35 @@ const devLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) console.log(...args);
 };
 
-// Error Boundary Component
-class ErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
-
   static getDerivedStateFromError(error: Error) {
-    console.error('🔥 ErrorBoundary caught error:', error);
+    console.error('ErrorBoundary caught error:', error);
     return { hasError: true, error };
   }
-
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🔥 ErrorBoundary componentDidCatch:', error, errorInfo);
+    console.error('ErrorBoundary componentDidCatch:', error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{ padding: '20px', fontFamily: 'monospace', color: 'red' }}>
-          <h1>🚨 Something went wrong</h1>
-          {import.meta.env.DEV ? (
-            <>
-              <p><strong>Error:</strong> {this.state.error?.message}</p>
-              <pre>{this.state.error?.stack}</pre>
-            </>
-          ) : (
-            <p>Please refresh the page. If the problem persists, contact support.</p>
-          )}
-          <button onClick={() => window.location.reload()}>Reload Page</button>
-        </div>
-      );
+      return <div style={{ padding: 20, fontFamily: 'monospace' }}><h1>Dinodash failed to start</h1><p>{this.state.error?.message || 'Unknown error'}</p><button onClick={() => window.location.reload()}>Reload</button></div>;
     }
-
     return this.props.children;
   }
 }
 
-devLog('📦 App.tsx loading...');
+devLog('App.tsx loading...');
 
 const App = () => {
-  devLog('⚛️ App component rendering...');
-
   const [dbLevels, setDbLevels] = useState<DbLevel[]>([]);
-
   useEffect(() => {
     async function getLevels() {
       if (!supabase) return;
       const { data: levels } = await supabase.from('levels').select();
-      if (levels) {
-        setDbLevels(levels as DbLevel[]);
-        devLog(`[supabase] ${levels.length} levels loaded from DB`);
-        if (import.meta.env.DEV) {
-          // Expose on window for debug access in the browser console.
-          (window as Window & { dbLevels?: DbLevel[] }).dbLevels = levels as DbLevel[];
-        }
-      }
+      if (levels) setDbLevels(levels as DbLevel[]);
     }
     getLevels();
   }, []);
@@ -94,7 +63,6 @@ const App = () => {
               <Route path="/mapper" element={<Index />} />
               <Route path="/crm" element={<Crm />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
@@ -103,7 +71,5 @@ const App = () => {
     </ErrorBoundary>
   );
 };
-
-devLog('✅ App.tsx loaded');
 
 export default App;
