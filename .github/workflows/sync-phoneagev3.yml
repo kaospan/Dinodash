@@ -45,7 +45,25 @@ jobs:
           }
           fs.writeFileSync('package.json', JSON.stringify(target, null, 2) + '\n');
           NODE
-          npm install --package-lock-only
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'src/hooks/useCameraGestures.ts';
+          let s = fs.readFileSync(path, 'utf8');
+          const state = `const [cameraZoomIndex, setCameraZoomIndex] = useState(() => {\n    try {\n      const stored = Number.parseInt(localStorage.getItem("dinodash-camera-zoom-index") ?? "", 10);\n      if (Number.isInteger(stored) && stored >= 0 && stored < CAMERA_ZOOM_LEVELS.length) return stored;\n    } catch {}\n    return isMobile ? MOBILE_DEFAULT_CAMERA_ZOOM_INDEX : DEFAULT_CAMERA_ZOOM_INDEX;\n  });`;
+          const original = `const [cameraZoomIndex, setCameraZoomIndex] = useState(() =>\n    isMobile ? MOBILE_DEFAULT_CAMERA_ZOOM_INDEX : DEFAULT_CAMERA_ZOOM_INDEX\n  );`;
+          if (!s.includes(state)) {
+            if (!s.includes(original)) throw new Error('camera zoom state initializer not found');
+            s = s.replace(original, state);
+          }
+          const marker = `  const [userZoomTouched, setUserZoomTouched] = useState(false);`;
+          const persistence = `  useEffect(() => {\n    try {\n      localStorage.setItem("dinodash-camera-zoom-index", String(cameraZoomIndex));\n    } catch {}\n  }, [cameraZoomIndex]);\n\n`;
+          if (!s.includes(persistence)) {
+            if (!s.includes(marker)) throw new Error('camera zoom state marker not found');
+            s = s.replace(marker, persistence + marker);
+          }
+          fs.writeFileSync(path, s);
+          NODE
+          npm install
           npm test -- --run
           npm run build
           git config user.name 'github-actions[bot]'
