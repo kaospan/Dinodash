@@ -1,42 +1,34 @@
 import { useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrthographicCamera } from '@react-three/drei';
+import { OrbitControls, OrthographicCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { levels3D } from '@/game3d/levels3d';
-import { isComplete, movePlayer, type Move3D } from '@/game3d/level3dLogic';
-import type { Level3D, Position3D } from '@/game3d/level3d';
+import { bonkRock, effectiveHeight, isComplete, movePlatform, movePlayer, type Move3D } from '@/game3d/level3dLogic';
+import type { Level3D, Platform3D, Position3D, Rock3D } from '@/game3d/level3d';
 import './Dinodash3D.css';
 
-const D = 11;
-const cameras = [[D,D,D],[-D,D,D],[-D,D,-D],[D,D,-D]] as const;
-function Diorama({ level, player }: { level: Level3D; player: Position3D }) {
-  const blocks = useMemo(() => {
-    const geometry = new THREE.BoxGeometry(0.92, 1, 0.92);
-    const material = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.06 });
-    const mesh = new THREE.InstancedMesh(geometry, material, level.cells.length * 3);
-    const matrix = new THREE.Matrix4(); let index = 0;
-    for (const cell of level.cells) for (let h = 0; h < cell.height; h += 1) {
-      matrix.makeTranslation(cell.x - 3, h * 0.5, cell.y - 3); matrix.scale(new THREE.Vector3(1, 0.5, 1)); mesh.setMatrixAt(index++, matrix);
-    }
-    mesh.count = index; mesh.instanceMatrix.needsUpdate = true; return mesh;
-  }, [level]);
-  return <>
-    <ambientLight intensity={1.7} /><directionalLight position={[6,10,8]} intensity={3.5} />
-    <primitive object={blocks} />
-    <mesh position={[player.x - 3, player.height * 0.5 + 0.5, player.y - 3]} castShadow><capsuleGeometry args={[0.22,0.45,4,10]} /><meshStandardMaterial roughness={0.5} /></mesh>
-    <mesh position={[level.goal.x - 3, level.goal.height * 0.5 + 0.58, level.goal.y - 3]}><cylinderGeometry args={[0.28,0.34,0.12,24]} /><meshStandardMaterial emissive="white" emissiveIntensity={0.8} /></mesh>
-  </>;
+const moves:Array<[string,Move3D]>=[['↑','up'],['↓','down'],['←','left'],['→','right']];
+
+function Scene({level,player,selected,onSelect}:{level:Level3D;player:Position3D;selected:{type:string;index?:number}|null;onSelect:(s:{type:string;index?:number})=>void}){
+ const cx=(level.width-1)/2,cy=(level.depth-1)/2;
+ const cameraZoom=Math.min(7.2,Math.max(3.5,22/Math.max(level.width/6,level.depth/10)));
+ return <><OrthographicCamera makeDefault position={[level.width*1.15,level.depth*1.15,level.width*1.15]} zoom={cameraZoom} onUpdate={c=>c.lookAt(0,0,0)}/><ambientLight intensity={1.8}/><hemisphereLight intensity={1.2} color="#f4fbff" groundColor="#44503e"/><directionalLight position={[8,12,8]} intensity={3} castShadow/>
+ <group position={[-cx,0,-cy]}>
+ {level.cells.map(c=>c.type==='void'?<mesh key={`v${c.x}-${c.y}`} position={[c.x,.02,c.y]} rotation={[-Math.PI/2,0,0]} onClick={e=>{e.stopPropagation();onSelect({type:'void',index:c.y*level.width+c.x})}}><circleGeometry args={[.43,20]}/><meshBasicMaterial color="#1d251e"/></mesh>:<group key={`${c.x}-${c.y}`} position={[c.x,c.height/2-.05,c.y]} onClick={e=>{e.stopPropagation();onSelect({type:'cell',index:c.y*level.width+c.x})}}><mesh castShadow receiveShadow><boxGeometry args={[.9,c.height,.9]}/><meshStandardMaterial color={c.type==='goal'?'#e1b33f':c.type==='start'?'#679a61':'#718070'} roughness={.88}/></mesh><mesh position={[0,c.height/2+.02,0]}><boxGeometry args={[.78,.04,.78]}/><meshStandardMaterial color={c.type==='goal'?'#ffe27a':'#a7b39f'}/></mesh></group>)}
+ {(level.rocks??[]).map((r:Rock3D,i)=><group key={`r${i}`} position={[r.x,r.height/2-.02,r.y]} onClick={e=>{e.stopPropagation();onSelect({type:'rock',index:i})}}><mesh castShadow><dodecahedronGeometry args={[.4,1]}/><meshStandardMaterial color={r.height===3?'#81786c':r.height===2?'#9b876d':'#b39a78'} roughness={.95}/></mesh><mesh position={[0,.1,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.17,.018,8,16]}/><meshBasicMaterial color="#d8c6a4"/></mesh>{selected?.type==='rock'&&selected.index===i&&<mesh position={[0,.03,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.43,.49,24]}/><meshBasicMaterial color="#ffe87a"/></mesh>}</group>)}
+ {(level.platforms??[]).map((p:Platform3D,i)=><group key={`p${i}`} position={[p.x,.15,p.y]} onClick={e=>{e.stopPropagation();onSelect({type:'platform',index:i})}}><mesh castShadow><boxGeometry args={[.82,.18,.82]}/><meshStandardMaterial color={selected?.type==='platform'&&selected.index===i?'#f4cc54':'#d5a74c'}/></mesh><mesh position={[p.dx*.18,.12,p.dy*.18]} rotation={[0,p.dx?Math.PI/2:0,0]}><coneGeometry args={[.13,.34,4]}/><meshStandardMaterial color="#fff0a2"/></mesh></group>)}
+ <group position={[player.x,.9+player.height*.45,player.y]} onClick={e=>{e.stopPropagation();onSelect({type:'dino'})}}><mesh castShadow><capsuleGeometry args={[.22,.4,6,14]}/><meshStandardMaterial color="#75d276"/></mesh><mesh position={[0,.3,-.02]}><sphereGeometry args={[.21,20,16]}/><meshStandardMaterial color="#a1e995"/></mesh><mesh position={[.07,.34,-.2]}><sphereGeometry args={[.035,10,8]}/><meshStandardMaterial color="#172017"/></mesh><mesh position={[-.07,.34,-.2]}><sphereGeometry args={[.035,10,8]}/><meshStandardMaterial color="#172017"/></mesh><mesh position={[0,.05,.28]} rotation={[0,.15,0]}><capsuleGeometry args={[.05,.36,5,10]}/><meshStandardMaterial color="#69be6a"/></mesh>{selected?.type==='dino'&&<mesh position={[0,-.85,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.3,.38,24]}/><meshBasicMaterial color="#ffe87a"/></mesh>}</group>
+ </group><OrbitControls enablePan={false} enableZoom={true} enableRotate={true} dampingFactor={.08} enableDamping minZoom={cameraZoom*.75} maxZoom={cameraZoom*1.8}/></>;
 }
-const moves: Array<[string, Move3D]> = [['↑','up'],['↓','down'],['←','left'],['→','right']];
-export default function Dinodash3D() {
-  const [levelIndex,setLevelIndex]=useState(0); const [player,setPlayer]=useState(levels3D[0].playerStart); const [rotation,setRotation]=useState(0); const [zoom,setZoom]=useState(7);
-  const level=levels3D[levelIndex]; const complete=isComplete(level,player);
-  const loadLevel=(next:number)=>{const i=(next+levels3D.length)%levels3D.length;setLevelIndex(i);setPlayer(levels3D[i].playerStart);};
-  const tryMove=(move:Move3D)=>{const next=movePlayer(level,player,move);if(next)setPlayer(next);};
-  return <main className="dinodash3d"><header className="dinodash3d__header"><div><strong>DINODASH</strong><span> / 3D</span></div><div>LEVEL {levelIndex+1} / {levels3D.length}</div></header>
-    <section className="dinodash3d__stage"><Canvas dpr={[1,2]}><OrthographicCamera makeDefault position={cameras[rotation]} zoom={zoom} onUpdate={(camera)=>camera.lookAt(0,0,0)} /><color attach="background" args={['#d9d2c3']} /><Diorama level={level} player={player}/></Canvas>{complete&&<div className="dinodash3d__complete">LEVEL COMPLETE</div>}</section>
-    <section className="dinodash3d__controls"><div className="dinodash3d__row"><button onClick={()=>setRotation(r=>(r+1)%4)}>ROTATE ↻</button><button onClick={()=>setZoom(z=>Math.min(10,z+1))}>+</button><button onClick={()=>setZoom(z=>Math.max(4,z-1))}>−</button></div>
-      <div className="dinodash3d__dpad">{moves.map(([label,move])=><button key={move} onClick={()=>tryMove(move)} aria-label={move}>{label}</button>)}</div>
-      <div className="dinodash3d__row"><button onClick={()=>loadLevel(levelIndex-1)}>PREV</button><button onClick={()=>setPlayer(level.playerStart)}>RESET</button><button onClick={()=>loadLevel(levelIndex+1)}>NEXT</button></div></section>
-  </main>;
+
+export default function Dinodash3D(){
+ const [levelIndex,setLevelIndex]=useState(0);const [player,setPlayer]=useState<Position3D>(levels3D[0].playerStart);const [rocks,setRocks]=useState<Rock3D[]>(levels3D[0].rocks??[]);const [platforms,setPlatforms]=useState<Platform3D[]>(levels3D[0].platforms??[]);const [selected,setSelected]=useState<{type:string;index?:number}|null>({type:'dino'});const level=levels3D[levelIndex];
+ const reset=(idx=levelIndex)=>{const l=levels3D[idx];setLevelIndex(idx);setPlayer(l.playerStart);setRocks((l.rocks??[]).map(r=>({...r})));setPlatforms((l.platforms??[]).map(p=>({...p})));setSelected({type:'dino'})};
+ const move=(m:Move3D)=>{const n=movePlayer(level,player,m,rocks,platforms);if(n)setPlayer(n)};
+ const selectedRock=selected?.type==='rock'&&selected.index!==undefined?rocks[selected.index]:undefined;
+ const selectedPlatform=selected?.type==='platform'&&selected.index!==undefined?platforms[selected.index]:undefined;
+ const bonk=()=>{if(selectedRock&&selected.index!==undefined)setRocks(rs=>bonkRock(rs,selected.index))};
+ const moveSelectedPlatform=()=>{if(selectedPlatform&&selected.index!==undefined){const next=movePlatform(level,platforms,selected.index);if(next)setPlatforms(next)}};
+ const complete=isComplete(level,player);
+ return <main className="dinodash3d"><header className="dinodash3d__header"><div><strong>DINODASH</strong><span> / 3D</span></div><div>LEVEL {levelIndex+1} / 100</div></header><section className="dinodash3d__stage"><Canvas shadows dpr={[1,2]}><Scene level={level} player={player} selected={selected} onSelect={setSelected}/></Canvas>{complete&&<div className="dinodash3d__complete">DINO DID IT!</div>}</section><section className="dinodash3d__controls"><div className="dinodash3d__selection">{selected?.type==='dino'?'DINO SELECTED':selected?.type==='platform'?'ARROW PLATFORM SELECTED':selected?.type==='rock'?`ROCK SELECTED · ${selectedRock?.height??0} LEVEL`:'TAP A CELL, DINO, ROCK OR ARROW PLATFORM'}</div>{selected?.type==='platform'&&<button className="primary" onClick={moveSelectedPlatform}>MOVE ARROW PLATFORM</button>}{selected?.type==='rock'&&<button className="primary" onClick={bonk} disabled={!selectedRock||selectedRock.height<=0}>BONK ROCK</button>}<div className="dinodash3d__dpad">{moves.map(([label,m])=><button key={m} onClick={()=>move(m)}>{label}</button>)}</div><div className="dinodash3d__row"><button onClick={()=>reset(Math.max(0,levelIndex-1))}>PREV</button><button onClick={()=>reset()}>RESET</button><button onClick={()=>reset(Math.min(99,levelIndex+1))}>NEXT</button></div><div className="dinodash3d__hint">{level.hint}</div></section></main>;
 }
