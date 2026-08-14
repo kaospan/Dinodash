@@ -24,6 +24,16 @@ function extractArray(source, marker){
   throw new Error('Unterminated level array');
 }
 
+function normalizeGrid(grid){
+  if(!Array.isArray(grid)) return grid;
+  // Phoneage may temporarily serialize a 12-row screenshot grid with a final
+  // all-void row. The playable campaign format is 11x20.
+  if(grid.length===12 && Array.isArray(grid[11]) && grid[11].length===20 && grid[11].every(cell=>cell===5)){
+    return grid.slice(0,-1);
+  }
+  return grid;
+}
+
 function validateLevels(levels, sourceName){
   if(!Array.isArray(levels)||levels.length!==ORIGINAL_LEVEL_COUNT){
     throw new Error(`Expected exactly ${ORIGINAL_LEVEL_COUNT} original Phoneage levels from ${sourceName}, got ${levels?.length??0}`);
@@ -33,6 +43,7 @@ function validateLevels(levels, sourceName){
     if(!Number.isInteger(level.id)||level.id<1||level.id>ORIGINAL_LEVEL_COUNT)throw new Error(`Invalid original level id ${level.id}`);
     if(ids.has(level.id))throw new Error(`Duplicate original level id ${level.id}`);
     ids.add(level.id);
+    level.grid=normalizeGrid(level.grid);
     if(!Array.isArray(level.grid)||level.grid.length!==11||level.grid.some(r=>!Array.isArray(r)||r.length!==20))throw new Error(`Level ${level.id} is not 11x20`);
     for(const row of level.grid)for(const cell of row)if(!Number.isInteger(cell)||cell<0||cell>20)throw new Error(`Level ${level.id} has invalid tile ${cell}`);
     if(!level.playerStart||!level.cavePos)throw new Error(`Level ${level.id} missing start/goal`);
@@ -53,29 +64,31 @@ async function fetchText(url){
 }
 
 async function loadLevels(){
-  // Phoneage now keeps 100 original campaign levels plus generated levels 101-200
-  // in the promoted snapshot. Dinodash's additive 3D campaign intentionally maps
-  // only the original 1-100 campaign.
+  // promoted-levels.json is the data-only authoritative snapshot. It contains
+  // the original campaign alongside later generated levels, so select only 1-100.
+  // This avoids evaluating TypeScript source and prevents an intermediate levels.ts
+  // refactor from making CI believe the original campaign is empty.
+  let snapshotError=null;
+  try{
+    const snapshot=JSON.parse(await fetchText(PROMOTED_SOURCE));
+    return selectOriginalLevels(snapshot,'promoted-levels.json');
+  }catch(error){
+    snapshotError=error;
+  }
+
+  // Keep levels.ts as a diagnostic fallback if the snapshot endpoint is unavailable.
   let primaryError=null;
   try{
     const source=await fetchText(LEVELS_SOURCE);
     if(!source.includes('Legend:')) throw new Error('Phoneage source validation failed');
     const expression=extractArray(source,'const baseManualLevels: Level[] =');
     const levels=Function(`"use strict"; return (${expression});`)();
-    if(Array.isArray(levels)&&levels.length===ORIGINAL_LEVEL_COUNT)return validateLevels(levels,'levels.ts');
-    primaryError=new Error(`levels.ts contained ${levels?.length??0} base levels`);
+    return selectOriginalLevels(levels,'levels.ts');
   }catch(error){
     primaryError=error;
   }
 
-  try{
-    const snapshot=JSON.parse(await fetchText(PROMOTED_SOURCE));
-    const levels=selectOriginalLevels(snapshot,'promoted-levels.json');
-    console.log(`Primary Phoneage source unavailable/incomplete (${primaryError?.message}); using original 1-${ORIGINAL_LEVEL_COUNT} from promoted-levels snapshot.`);
-    return levels;
-  }catch(error){
-    throw new Error(`Phoneage synchronization failed. Primary: ${primaryError?.message ?? 'unknown error'}. Snapshot: ${error.message}`);
-  }
+  throw new Error(`Phoneage synchronization failed. Snapshot: ${snapshotError?.message ?? 'unknown error'}. levels.ts: ${primaryError?.message ?? 'unknown error'}`);
 }
 
 const levels=await loadLevels();
