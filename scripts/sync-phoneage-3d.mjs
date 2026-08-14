@@ -10,8 +10,14 @@ async function fetchJson(url){
   return response.json();
 }
 
-function normalizeGrid(grid){
-  if(grid.length===12 && grid[11]?.length===20 && grid[11].every(cell=>cell===5)) return grid.slice(0,-1);
+function normalizeGrid(input){
+  let grid=input.map(row=>Array.isArray(row)?row.slice():row);
+  while(grid.length>11 && grid[grid.length-1]?.every?.(cell=>cell===5)) grid.pop();
+  while(grid.length===11 && grid.some(row=>Array.isArray(row)&&row.length>20)) {
+    const width=Math.max(...grid.map(row=>Array.isArray(row)?row.length:0));
+    if(width<=20 || !grid.every(row=>Array.isArray(row)&&row.length===width&&row[width-1]===5)) break;
+    grid=grid.map(row=>row.slice(0,-1));
+  }
   return grid;
 }
 
@@ -24,7 +30,7 @@ function validateLevels(levels){
     if(ids.has(level.id)) throw new Error(`Duplicate Phoneage level ${level.id}`);
     ids.add(level.id);
     level.grid=normalizeGrid(level.grid);
-    if(level.grid.length!==11||level.grid.some(row=>!Array.isArray(row)||row.length!==20)) throw new Error(`Level ${level.id} is not 11x20`);
+    if(!Array.isArray(level.grid)||level.grid.length!==11||level.grid.some(row=>!Array.isArray(row)||row.length!==20)) throw new Error(`Level ${level.id} is not 11x20`);
     for(const row of level.grid) for(const tile of row) if(!Number.isInteger(tile)||tile<0||tile>20) throw new Error(`Level ${level.id} has invalid tile ${tile}`);
     if(!level.playerStart||!level.cavePos) throw new Error(`Level ${level.id} missing start/goal`);
   }
