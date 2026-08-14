@@ -27,6 +27,7 @@ jobs:
             src/hooks/useGameControls.ts
             src/hooks/useCameraGestures.ts
             src/hooks/useGameTimerSession.ts
+            src/lib/fpsArchetypes.ts
           )
           for f in "${files[@]}"; do
             test -f "/tmp/phoneagev3/$f"
@@ -68,7 +69,7 @@ jobs:
           npm run build
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/components/PuzzleGame.tsx src/components/GameFPS.tsx src/components/ViewModeSwitcher.tsx src/components/CampaignDialog.tsx src/shell/GameHudTop.tsx src/hooks/useGameEngine.ts src/hooks/useGameControls.ts src/hooks/useCameraGestures.ts src/hooks/useGameTimerSession.ts package.json package-lock.json
+          git add src/components/PuzzleGame.tsx src/components/GameFPS.tsx src/components/ViewModeSwitcher.tsx src/components/CampaignDialog.tsx src/shell/GameHudTop.tsx src/hooks/useGameEngine.ts src/hooks/useGameControls.ts src/hooks/useCameraGestures.ts src/hooks/useGameTimerSession.ts src/lib/fpsArchetypes.ts package.json package-lock.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'sync Dinodash gameplay architecture from phoneagev3'
           git push
