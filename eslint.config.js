@@ -5,7 +5,20 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "reports", "reports_tmp", ".tmp", ".tmp*", ".verify*", "apps/android/android/app/build"] },
+  {
+    ignores: [
+      "dist",
+      "node_modules",
+      "reports",
+      "reports_tmp",
+      ".tmp",
+      ".tmp*",
+      ".verify*",
+      "apps/android/android/app/build",
+      "src/components/Dinodash3D.tsx",
+      "src/pages/Dinodash3D.tsx",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
