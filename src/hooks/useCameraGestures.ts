@@ -69,7 +69,17 @@ export const useCameraGestures = ({
     } catch {}
     return isMobile ? MOBILE_DEFAULT_CAMERA_ZOOM_INDEX : DEFAULT_CAMERA_ZOOM_INDEX;
   });
-  const [cameraMode, setCameraMode] = useState(false);
+  const [cameraMode, setCameraModeState] = useState(() => {
+    try { return localStorage.getItem("dinodash-camera-mode") === "1"; } catch { return false; }
+  });
+
+  const setCameraMode: React.Dispatch<React.SetStateAction<boolean>> = (value) => {
+    setCameraModeState((previous) => {
+      const next = typeof value === "function" ? value(previous) : value;
+      try { localStorage.setItem("dinodash-camera-mode", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     try { localStorage.setItem("dinodash-camera-zoom-index", String(cameraZoomIndex)); } catch {}
@@ -78,7 +88,10 @@ export const useCameraGestures = ({
   useEffect(() => {
     const handleCameraMode = (event: Event) => {
       const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
-      if (typeof detail?.enabled === "boolean") setCameraMode(detail.enabled);
+      if (typeof detail?.enabled === "boolean") {
+        setCameraModeState(detail.enabled);
+        try { localStorage.setItem("dinodash-camera-mode", detail.enabled ? "1" : "0"); } catch {}
+      }
     };
     window.addEventListener(CAMERA_MODE_EVENT, handleCameraMode);
     return () => window.removeEventListener(CAMERA_MODE_EVENT, handleCameraMode);
@@ -146,14 +159,14 @@ export const useCameraGestures = ({
   useEffect(() => { if (viewMode === "fps") setIsDragging(false); }, [viewMode]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (viewMode === "fps" || viewMode === "sprite" || viewMode === "top") return;
+    if (!cameraMode || viewMode === "fps" || viewMode === "sprite" || viewMode === "top") return;
     if (e.button === 0 && e.target === e.currentTarget) {
       setIsDragging(true); setDragStart({ x: e.clientX, y: e.clientY });
       setDragOffsetStart({ x: cameraOffset.x, z: cameraOffset.z });
     }
   };
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (viewMode === "fps" || viewMode === "sprite" || viewMode === "top" || !isDragging) return;
+    if (!cameraMode || viewMode === "fps" || viewMode === "sprite" || viewMode === "top" || !isDragging) return;
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
     const sensitivity = 0.1;
@@ -163,8 +176,9 @@ export const useCameraGestures = ({
   const handleMouseLeave = () => setIsDragging(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!cameraMode || viewMode === "fps" || viewMode === "sprite" || viewMode === "top") return;
+    if (viewMode === "fps" || viewMode === "sprite" || viewMode === "top") return;
     if (e.touches.length >= 2) {
+      if (!cameraMode) return;
       multiTouchActiveRef.current = true; setIsDragging(false);
       const t0 = e.touches[0]; const t1 = e.touches[1]; const t2 = e.touches[2];
       const dist = distanceBetweenTouches(t0, t1);
@@ -175,13 +189,16 @@ export const useCameraGestures = ({
       return;
     }
     if (e.touches.length === 1 && e.target === e.currentTarget && !multiTouchActiveRef.current) {
-      const touch = e.touches[0]; setIsDragging(true);
+      const touch = e.touches[0];
+      if (!cameraMode) return;
+      setIsDragging(true);
       setDragStart({ x: touch.clientX, y: touch.clientY }); setDragOffsetStart({ x: cameraOffset.x, z: cameraOffset.z });
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!cameraMode || viewMode === "fps" || viewMode === "sprite" || viewMode === "top") return;
+    if (viewMode === "fps" || viewMode === "sprite" || viewMode === "top") return;
+    if (!cameraMode) return;
     if (e.touches.length >= 2) {
       const gesture = twoFingerGestureRef.current; if (!gesture) return;
       const t0 = e.touches[0]; const t1 = e.touches[1]; const t2 = e.touches[2];
