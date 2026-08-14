@@ -1,29 +1,5 @@
-import type { Cell3D, Level3D } from './level3d';
-const grid = (rows: number[][]): Cell3D[] => rows.flatMap((row, y) => row.map((height, x) => ({ x, y, height, type: 'floor' as const })));
-const make = (rows: number[][], start: [number, number], goal: [number, number]): Level3D => {
-  const cells = grid(rows);
-  const heightAt = (x: number, y: number) => rows[y][x];
-  const playerStart = { x: start[0], y: start[1], height: heightAt(start[0], start[1]) };
-  const goalPos = { x: goal[0], y: goal[1], height: heightAt(goal[0], goal[1]) };
-  cells.find((c) => c.x === goal[0] && c.y === goal[1])!.type = 'goal';
-  cells.find((c) => c.x === start[0] && c.y === start[1])!.type = 'start';
-  return { width: rows[0].length, depth: rows.length, maxHeight: Math.max(...rows.flat()), cells, playerStart, goal: goalPos };
-};
-const flat = (h = 1) => Array.from({ length: 7 }, () => Array(7).fill(h));
-const withCells = (edits: Record<string, number>) => {
-  const r = flat();
-  for (const [key, h] of Object.entries(edits)) { const [x, y] = key.split(',').map(Number); r[y][x] = h; }
-  return r;
-};
-export const levels3D: Level3D[] = [
-  make(flat(), [0, 3], [6, 3]),
-  make(withCells({ '2,3': 2, '3,3': 2, '4,3': 3 }), [0, 3], [6, 3]),
-  make(withCells({ '2,3': 2, '3,3': 2, '4,3': 1 }), [0, 3], [6, 3]),
-  make(withCells({ '2,3': 3, '2,4': 2, '3,4': 2, '4,4': 1 }), [0, 3], [6, 4]),
-  make(withCells({ '2,2': 3, '2,3': 3, '2,4': 3, '4,2': 2, '4,3': 2, '4,4': 2 }), [0, 3], [6, 3]),
-  make(withCells({ '1,2': 2, '1,3': 2, '1,4': 2, '3,1': 3, '3,2': 3, '3,3': 3, '5,2': 2, '5,3': 2, '5,4': 2 }), [0, 3], [6, 3]),
-  make(withCells({ '1,3': 2, '2,3': 3, '3,3': 2, '4,3': 3, '5,3': 2 }), [0, 3], [6, 3]),
-  make(withCells({ '1,3': 2, '2,3': 3, '3,2': 2, '3,3': 3, '3,4': 2, '4,3': 3, '5,3': 2 }), [0, 3], [6, 3]),
-  make(withCells({ '1,3': 2, '2,3': 3, '2,2': 2, '3,2': 3, '4,2': 2, '4,3': 3, '5,3': 2, '5,4': 3 }), [0, 3], [6, 4]),
-  make(withCells({ '1,3': 2, '2,3': 3, '2,2': 2, '3,2': 3, '3,1': 2, '4,1': 3, '4,2': 3, '5,2': 2, '5,3': 3, '6,3': 3 }), [0, 3], [6, 3]),
-];
+import type { Cell3D, Level3D, Platform3D, Rock3D } from './level3d';
+const sizeFor=(id:number)=>id<=10?[8,5] as const:id<=20?[10,6] as const:id<=35?[12,7] as const:id<=50?[14,8] as const:id<=70?[15,9] as const:[16,9] as const;
+const hash=(n:number)=>{let x=(n*1103515245+12345)>>>0;x^=x>>>16;return x>>>0};
+function makeLevel(id:number):Level3D{const [depth,width]=sizeFor(id),cells:Cell3D[]=[],rocks:Rock3D[]=[],platforms:Platform3D[]=[],sy=Math.floor(depth/2),start={x:0,y:sy,height:1},goal={x:width-1,y:sy,height:1};for(let y=0;y<depth;y++)for(let x=0;x<width;x++){let h=1,r=hash(id*997+x*37+y*101)%100;if(r<Math.floor(Math.min(.42,.05+id*.004)*100))h=1+hash(id*31+x*17+y*13)%3;if((x+y+id)%11===0&&id>8)h=Math.min(4,2+hash(id+x+y)%3);const edge=x===0||y===0||x===width-1||y===depth-1,isStart=x===0&&y===sy,isGoal=x===width-1&&y===sy,isVoid=!isStart&&!isGoal&&!edge&&id>12&&(hash(id*71+x*19+y*23)%1000)/1000<Math.min(.14,(id-10)*.0018);cells.push({x,y,height:isVoid?0:h,type:isVoid?'void':isStart?'start':isGoal?'goal':'floor'})}for(let k=0;k<(id<6?0:Math.min(7,Math.floor(id/12)+1));k++){const x=1+hash(id*41+k*17)%(width-2),y=1+hash(id*67+k*29)%(depth-2);if(!((x===0&&y===sy)||(x===width-1&&y===sy)))rocks.push({x,y,height:3-k%2})}for(let k=0;k<(id<15?0:Math.min(5,Math.floor((id-10)/15)+1));k++){const horizontal=k%2===0;const x=1+hash(id*53+k*7)%(width-2),y=1+hash(id*61+k*13)%(depth-2);platforms.push({x,y,dx:horizontal?1:0,dy:horizontal?0:1})}return{id,name:`Dino Adventure ${id}`,width,depth,maxHeight:4,cells,playerStart:start,goal,rocks,platforms,hint:id<11?'Learn the height and movement rules.':id<21?'Plan the route, then move Dino.':id<36?'Arrow platforms can be repositioned before Dino moves.':id<51?'Combine height, rocks and remote platforms.':id<71?'Plan several mechanisms ahead of time.':'Full-size portrait puzzle: prepare the route before committing Dino.'}}
+export const levels3D:Level3D[]=Array.from({length:100},(_,i)=>makeLevel(i+1));
