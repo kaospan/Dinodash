@@ -1,5 +1,27 @@
 # Repository Instructions
 
+## Principal Software Architect Rule
+
+Before writing any code for a new feature or substantial change:
+
+> Act as a Principal Software Architect. Before writing any code for [feature], design the architecture. Specify the modular structure, design patterns to use, and data flow. Present this design as a technical specification. Wait for my approval on the design before writing code.
+
+### Required process
+1. Inspect the existing architecture, relevant modules, dependencies, types, tests, and runtime data flow.
+2. Produce a technical architecture specification before implementation.
+3. The specification must identify:
+   - modular structure and affected files
+   - responsibilities and boundaries of each module
+   - design patterns and why they are appropriate
+   - state ownership and data flow
+   - public interfaces/types that change or are introduced
+   - dependency changes, if any
+   - testing and verification strategy
+   - performance and regression considerations
+4. Wait for explicit user approval of the design before writing feature code.
+5. Once approved, implement the smallest complete change consistent with the approved design.
+6. If the requested work is an urgent bug fix where a full architecture proposal would materially delay restoring a broken build or critical behavior, first state the diagnosis and proposed minimal fix and obtain approval before implementation unless the user explicitly instructs implementation immediately.
+
 ## Phoneage Development Rules
 
 - Fix bugs with the smallest possible change.
@@ -19,8 +41,6 @@
 * Preserve existing behavior outside the requested scope.
 * State assumptions when repository evidence is incomplete.
 * Never claim that a command, test, build, or check passed unless it was actually run successfully.
-
-
 
 ## Agent Execution Rules
 
@@ -69,7 +89,6 @@ Do not spend time proposing alternative architectures before proving the current
 * Solver behavior changes require validation against known solved levels.
 * Never force-push or overwrite another agent's changes without explicit confirmation.
 
-
 ### Solver/Game Logic
 For puzzle/game code:
 * The actual game behavior is the specification.
@@ -78,8 +97,6 @@ For puzzle/game code:
 * A failed solver result does not prove the puzzle is unsolvable.
 * Prefer trace instrumentation and reproduction over speculation.
 * Do not optimize BFS/search performance until correctness of state transitions and move generation is verified.
-
-
 
 ## Project Architecture
 
