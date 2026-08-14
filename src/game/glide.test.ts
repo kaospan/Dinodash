@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { computePlayerGlidePath, computeRemoteArrowGlidePath } from "./glide";
 import type { CellType } from "./types";
 
-// Legend used throughout: 0 floor, 1 wall, 2 stone, 3 cave, 4 water, 5 void, 6 breakable,
+// Legend used throughout: 0 floor, 1 wall, 2 stone, 3 cave, 5 void, 6 breakable,
 // 7-10 single arrows, 18 start marker, 19 teleport, 20 bonus.
 const row = (...cells: CellType[]) => cells;
 
@@ -12,12 +12,6 @@ describe("computePlayerGlidePath", () => {
     const result = computePlayerGlidePath(grid, { x: 0, y: 0 }, 1, 0, 8);
     expect(result.path).toEqual([{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }]);
     expect(result.arrowType).toBe(8);
-  });
-
-  it("glides over water the same as void", () => {
-    const grid = [row(8, 4, 4, 2)];
-    const result = computePlayerGlidePath(grid, { x: 0, y: 0 }, 1, 0, 8);
-    expect(result.path).toEqual([{ x: 1, y: 0 }, { x: 2, y: 0 }]);
   });
 
   it("produces an empty path when immediately blocked", () => {
@@ -47,7 +41,7 @@ describe("computePlayerGlidePath", () => {
 });
 
 describe("computeRemoteArrowGlidePath", () => {
-  it("mirrors player glide behavior over void/water", () => {
+  it("mirrors player glide behavior over void", () => {
     const grid = [row(13, 5, 5, 0)];
     const result = computeRemoteArrowGlidePath(grid, { x: 0, y: 0 }, 1, 0, 13);
     expect(result.path).toEqual([{ x: 1, y: 0 }, { x: 2, y: 0 }]);
