@@ -1,7 +1,8 @@
 import { PuzzleGame } from "@/components/PuzzleGame";
 import LevelMapper from "@/components/LevelMapper";
 import { MapperAuthGate } from "@/components/MapperAuthGate";
-import { PlayerAuthGate } from "@/components/PlayerAuthGate";
+// PlayerAuthGate is temporarily disabled so the game starts without Supabase login.
+// import { PlayerAuthGate } from "@/components/PlayerAuthGate";
 import bgImage from "@/assets/stone-age-bg.png";
 import { useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -49,9 +50,8 @@ const Index = () => {
                             <LevelMapper />
                         </MapperAuthGate>
                     ) : (
-                        <PlayerAuthGate>
-                            <PuzzleGame />
-                        </PlayerAuthGate>
+                        // Supabase player login temporarily disabled: start the game directly.
+                        <PuzzleGame />
                     )}
                 </div>
             </div>
