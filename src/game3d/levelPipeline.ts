@@ -16,7 +16,13 @@ export function build3DLevel(id:number,grid:number[][],playerStart:{x:number;y:n
   else if(t.kind==='breakable'){cells.push({x,y,height:t.height,type:'rock'});rocks.push({x,y,height:t.height,breakable:true});}
   else if(t.kind==='goal')cells.push({x,y,height:1,type:'goal'});
   else if(t.kind==='start-marker')cells.push({x,y,height:1,type:'start'});
-  else if(t.kind==='arrow'){cells.push({x,y,height:1,type:'platform'});const d=delta(t.directions[0]??'up');platforms.push({x,y,dx:d.dx,dy:d.dy,directions:dirs(t.directions)});}
+  else if(t.kind==='arrow'){
+   // Arrow platforms are movable objects sitting over void. When they move,
+   // the source cell must reveal void rather than the floor that the 2D tile used to imply.
+   cells.push({x,y,height:0,type:'void'});
+   const d=delta(t.directions[0]??'up');
+   platforms.push({x,y,dx:d.dx,dy:d.dy,directions:dirs(t.directions)});
+  }
   else if(t.kind==='key')cells.push({x,y,height:1,type:t.color==='red'?'key-red':'key-green'});
   else if(t.kind==='lock')cells.push({x,y,height:1,type:t.color==='red'?'lock-red':'lock-green'});
   else if(t.kind==='teleport')cells.push({x,y,height:1,type:'teleport'});
