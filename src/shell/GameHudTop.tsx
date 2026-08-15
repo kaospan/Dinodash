@@ -47,7 +47,7 @@ export const GameHudTop = forwardRef<HTMLDivElement, GameHudTopProps>(({
   const toggleCameraMode = () => {
     const enabled = !cameraMode;
     setCameraMode(enabled);
-    try { localStorage.setItem("dinodash-camera-mode", enabled ? "1" : "0"); } catch {}
+    try { localStorage.setItem("dinodash-camera-mode", enabled ? "1" : "0"); } catch { /* localStorage may be unavailable */ }
     window.dispatchEvent(new CustomEvent(CAMERA_MODE_EVENT, { detail: { enabled } }));
   };
 
