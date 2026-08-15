@@ -1,0 +1,77 @@
+name: One-off arrow thumbstick fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "!startsWith(github.event.head_commit.message, 'fix: arrow launch + thumbstick')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Dinodash 3D controls
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('src/components/Dinodash3D.tsx')
+          s = p.read_text()
+
+          marker = 'function Board({level,player,rocks,platforms,selected,onCell,onRock,onPlatform,happy,bonk}:BoardProps)'
+          thumb = r'''function MobileThumbstick({onDirection}:{onDirection:(dir:'up'|'down'|'left'|'right')=>void}){
+            const [active,setActive]=useState(false);
+            const [knob,setKnob]=useState({x:0,y:0});
+            const last=useRef<string|null>(null);
+            const update=(clientX:number,clientY:number,rect:DOMRect)=>{
+              const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+              let dx=clientX-cx,dy=clientY-cy;
+              const max=34,dist=Math.hypot(dx,dy);
+              if(dist>max){dx=dx/dist*max;dy=dy/dist*max}
+              setKnob({x:dx,y:dy});
+              if(dist<14){last.current=null;return}
+              const dir=Math.abs(dx)>=Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+              if(dir!==last.current){last.current=dir;onDirection(dir)}
+            };
+            const end=()=>{setActive(false);setKnob({x:0,y:0});last.current=null};
+            return <div className="pointer-events-auto absolute bottom-5 left-5 z-30 md:hidden select-none" style={{touchAction:'none'}}
+              onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);setActive(true);update(e.clientX,e.clientY,e.currentTarget.getBoundingClientRect())}}
+              onPointerMove={e=>{if(active)update(e.clientX,e.clientY,e.currentTarget.getBoundingClientRect())}}
+              onPointerUp={end} onPointerCancel={end} onPointerLeave={e=>{if(active)update(e.clientX,e.clientY,e.currentTarget.getBoundingClientRect())}}>
+              <div className="relative h-28 w-28 rounded-full border-2 border-white/30 bg-black/45 shadow-2xl backdrop-blur-sm">
+                <div className="absolute inset-5 rounded-full border border-white/15"/>
+                <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f5edcf] shadow-xl transition-transform duration-75" style={{transform:`translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))`}}/>
+                {active&&<div className="absolute inset-0 rounded-full ring-2 ring-[#d4a64e]/70"/>}
+              </div>
+            </div>
+          }
+          '''
+          if 'function MobileThumbstick(' not in s:
+              if marker not in s: raise SystemExit('Board marker not found')
+              s=s.replace(marker,thumb+'\n'+marker,1)
+
+          old_platform="const platform=(i:number)=>{if(complete)return;const next=movePlatform(level,platforms,i);if(next)setPlatforms(next)};"
+          new_platform="const platform=(i:number)=>{if(complete)return;const p=platforms[i];if(!p)return;setSelected([p.x,p.y]);};"
+          if old_platform not in s: raise SystemExit('platform handler not found')
+          s=s.replace(old_platform,new_platform,1)
+
+          old_controls='<div className="pointer-events-auto absolute inset-x-0 bottom-4 z-20 flex justify-center gap-2"><button className="h-12 w-12 rounded-full bg-[#f5edcf]/90 text-xl font-black shadow-lg" onClick={()=>move(\'left\')}>‹</button><button className="h-12 w-12 rounded-full bg-[#f5edcf]/90 text-xl font-black shadow-lg" onClick={()=>move(\'up\')}>↑</button><button className="h-12 w-12 rounded-full bg-[#f5edcf]/90 text-xl font-black shadow-lg" onClick={()=>move(\'down\')}>↓</button><button className="h-12 w-12 rounded-full bg-[#f5edcf]/90 text-xl font-black shadow-lg" onClick={()=>move(\'right\')}>›</button></div>'
+          if old_controls not in s: raise SystemExit('old arrow controls not found')
+          s=s.replace(old_controls,'<MobileThumbstick onDirection={move}/> ',1)
+          p.write_text(s)
+          PY
+      - name: Verify patch
+        run: |
+          grep -q 'function MobileThumbstick' src/components/Dinodash3D.tsx
+          grep -q 'setSelected(\[p.x,p.y\])' src/components/Dinodash3D.tsx
+          npm test -- --run
+      - name: Commit patched source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/Dinodash3D.tsx .github/workflows/oneoff-arrow-thumbstick-fix.yml
+          git rm .github/workflows/oneoff-arrow-thumbstick-fix.yml
+          git commit -m 'fix: arrow launch + thumbstick'
+          git push
