@@ -23,11 +23,11 @@ describe("isArrowCell", () => {
 });
 
 describe("getArrowDirections", () => {
-  it("returns a single vector for single-direction arrows", () => {
-    expect(getArrowDirections(7)).toEqual([{ dx: 0, dy: -1 }]); // up
-    expect(getArrowDirections(8)).toEqual([{ dx: 1, dy: 0 }]); // right
-    expect(getArrowDirections(9)).toEqual([{ dx: 0, dy: 1 }]); // down
-    expect(getArrowDirections(10)).toEqual([{ dx: -1, dy: 0 }]); // left
+  it("returns directions matching the rendered arrow orientation", () => {
+    expect(getArrowDirections(7)).toEqual([{ dx: 0, dy: 1 }]); // down
+    expect(getArrowDirections(8)).toEqual([{ dx: -1, dy: 0 }]); // left
+    expect(getArrowDirections(9)).toEqual([{ dx: 0, dy: -1 }]); // up
+    expect(getArrowDirections(10)).toEqual([{ dx: 1, dy: 0 }]); // right
   });
 
   it("returns two vectors for dual-direction arrows", () => {
