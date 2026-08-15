@@ -3,9 +3,8 @@ import { CellType } from './types';
 export const isArrowCell = (cell: CellType) =>
   (cell >= 7 && cell <= 10) || cell === 11 || cell === 12 || cell === 13;
 
-// Phoneage's source levels use the opposite visual orientation from DinoDash's
-// movement coordinate system. DinoDash therefore defines the gameplay direction
-// as the direction shown by the rendered arrow after the 180° correction in Game3D.
+// Single-arrow gameplay vectors are intentionally opposite the original Phoneage IDs.
+// Game3D renders the corresponding single arrows with the same 180-degree correction.
 // Multi-direction arrows are unchanged because their opposite directions are paired.
 export const getArrowDirections = (cell: CellType): { dx: number; dy: number }[] => {
   switch (cell) {
