@@ -12,15 +12,15 @@ type Props = {
   fitDistance?: number;
 };
 
-/**
- * Camera owns camera state. Gameplay may change followTarget, but never owns
- * the camera's zoom or rotation. OrbitControls therefore remains authoritative
- * for user-controlled orientation and distance.
- */
+type OrbitControlsLike = {
+  target: THREE.Vector3;
+  update: () => void;
+};
+
 export function PersistentCameraRig({ boardCenter, followTarget, mode, fitDistance = DEFAULT_CAMERA_DISTANCE }: Props) {
   const { size } = useThree();
   const camera = useRef<THREE.PerspectiveCamera>(null);
-  const controls = useRef<any>(null);
+  const controls = useRef<OrbitControlsLike | null>(null);
   const restored = useRef(false);
   const previousMode = useRef<CameraViewMode>(mode);
   const previousTarget = useRef(followTarget.clone());
@@ -43,15 +43,11 @@ export function PersistentCameraRig({ boardCenter, followTarget, mode, fitDistan
     const target = mode === 'top' ? boardCenter : followTarget;
     const targetDelta = target.distanceTo(previousTarget.current);
 
-    // Follow the Dino by moving the target only. Never reconstruct the camera
-    // position from a default offset; that is what previously reset rotation.
     if (targetDelta > 0.001) {
       controls.current.target.lerp(target, Math.min(1, dt * 8));
       previousTarget.current.copy(target);
     }
 
-    // TOP is an explicit view-mode change, so it may intentionally reposition
-    // the camera. Ordinary player movement never enters this branch.
     if (previousMode.current !== mode) {
       if (mode === 'top') {
         camera.current.position.set(boardCenter.x, Math.max(5, fitDistance) * 1.15, boardCenter.z + .01);
