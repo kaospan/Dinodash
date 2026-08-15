@@ -58,9 +58,7 @@ export interface UseCameraGesturesReturn {
   };
 }
 
-export const useCameraGestures = ({
-  renderGrid, viewMode, isMobilePortrait, isMobile, onPushHudMessage,
-}: UseCameraGesturesProps): UseCameraGesturesReturn => {
+export const useCameraGestures = ({ renderGrid, viewMode, isMobilePortrait, isMobile, onPushHudMessage }: UseCameraGesturesProps): UseCameraGesturesReturn => {
   const [cameraOffset, setCameraOffset] = useState({ x: 0, z: 0 });
   const [cameraZoomIndex, setCameraZoomIndex] = useState(() => {
     try {
