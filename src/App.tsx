@@ -10,6 +10,7 @@ import Crm from "./pages/Crm";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { Dinodash3D } from "./components/Dinodash3D";
+import { CameraModeToggle } from "./components/CameraModeToggle";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <CameraModeToggle />
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
