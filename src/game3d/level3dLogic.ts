@@ -9,26 +9,15 @@ const isVoid=(level:Level3D,x:number,y:number)=>cellAt(level,x,y)?.type==='void'
 const isPlatformAt=(platforms:Platform3D[],x:number,y:number)=>platforms.some(p=>p.x===x&&p.y===y);
 const isBlockingRockAt=(rocks:Rock3D[],x:number,y:number)=>rocks.some(r=>r.x===x&&r.y===y&&r.height>0);
 
-/** Arrow gliding is strictly void-only. Every non-void cell is a boundary and is never entered. */
 function glideDestination(level:Level3D,x0:number,y0:number,move:Move3D,rocks:Rock3D[],platforms:Platform3D[]){
-  const d=DELTAS[move];
-  let x=x0+d.x;
-  let y=y0+d.y;
-  let lastVoid={x:x0,y:y0};
-
+  const d=DELTAS[move]; let x=x0+d.x; let y=y0+d.y; let lastVoid={x:x0,y:y0};
   while(x>=0&&y>=0&&x<level.width&&y<level.depth){
-    if(!isVoid(level,x,y))return lastVoid;
-    if(isBlockingRockAt(rocks,x,y))return lastVoid;
-    if(isPlatformAt(platforms,x,y))return lastVoid;
-    lastVoid={x,y};
-    x+=d.x;
-    y+=d.y;
+    if(!isVoid(level,x,y)||isBlockingRockAt(rocks,x,y)||isPlatformAt(platforms,x,y))return lastVoid;
+    lastVoid={x,y}; x+=d.x; y+=d.y;
   }
-
   return lastVoid;
 }
 
-/** Move a selected arrow platform only across consecutive void cells. */
 export function glidePlatform(level:Level3D,platforms:Platform3D[],index:number,move:Move3D):Platform3D[]|null{
   const platform=platforms[index];
   if(!platform||!platform.directions?.includes(move))return null;
@@ -37,37 +26,24 @@ export function glidePlatform(level:Level3D,platforms:Platform3D[],index:number,
   return platforms.map((p,i)=>i===index?{...p,x:destination.x,y:destination.y}:p);
 }
 
-/** Launch from an arrow platform. Dino and platform glide together through consecutive void cells only. */
-function glideFromPlatform(level:Level3D,player:Position3D,move:Move3D,rocks:Rock3D[],platforms:Platform3D[]):Position3D|null{
+/** Returns the exact destination when Dino is standing on an arrow platform. */
+export function glideFromPlatform(level:Level3D,player:Position3D,move:Move3D,rocks:Rock3D[],platforms:Platform3D[]):Position3D|null{
   const platform=platforms.find(p=>p.x===player.x&&p.y===player.y);
   if(!platform||!platform.directions?.includes(move))return null;
-  const d=DELTAS[move];
-  let x=player.x+d.x;
-  let y=player.y+d.y;
-  let lastVoid={x:player.x,y:player.y};
-
-  while(x>=0&&y>=0&&x<level.width&&y<level.depth){
-    if(!isVoid(level,x,y))break;
-    if(isBlockingRockAt(rocks,x,y))break;
-    if(isPlatformAt(platforms.filter(p=>p!==platform),x,y))break;
-    lastVoid={x,y};
-    x+=d.x;
-    y+=d.y;
-  }
-
-  if(lastVoid.x===player.x&&lastVoid.y===player.y)return null;
-  return {...lastVoid,height:player.height};
+  const destination=glideDestination(level,player.x,player.y,move,rocks,platforms.filter(p=>p!==platform));
+  if(destination.x===player.x&&destination.y===player.y)return null;
+  return {...destination,height:1};
 }
 
 export function movePlayer(level:Level3D,player:Position3D,move:Move3D,rocks:Rock3D[]=[],platforms:Platform3D[]=[]):Position3D|null{
   const glide=glideFromPlatform(level,player,move,rocks,platforms);
   if(glide)return glide;
-  const d=DELTAS[move];const x=player.x+d.x,y=player.y+d.y;
+  const d=DELTAS[move]; const x=player.x+d.x,y=player.y+d.y;
   if(x<0||y<0||x>=level.width||y>=level.depth)return null;
   const target=cellAt(level,x,y);
   if(target?.type==='void'&&!isPlatformAt(platforms,x,y))return null;
   if(target?.type==='wall'||isBlockingRockAt(rocks,x,y))return null;
-  const h=effectiveHeight(level,rocks,platforms,x,y);if(h<=0||h>player.height+1)return null;
+  const h=effectiveHeight(level,rocks,platforms,x,y); if(h<=0||h>player.height+1)return null;
   return{x,y,height:h};
 }
 
