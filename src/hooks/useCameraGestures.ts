@@ -66,7 +66,7 @@ export const useCameraGestures = ({
     try {
       const stored = Number.parseInt(localStorage.getItem("dinodash-camera-zoom-index") ?? "", 10);
       if (Number.isInteger(stored) && stored >= 0 && stored < CAMERA_ZOOM_LEVELS.length) return stored;
-    } catch {}
+    } catch { /* localStorage may be unavailable */ }
     return isMobile ? MOBILE_DEFAULT_CAMERA_ZOOM_INDEX : DEFAULT_CAMERA_ZOOM_INDEX;
   });
   const [cameraMode, setCameraModeState] = useState(() => {
@@ -76,13 +76,13 @@ export const useCameraGestures = ({
   const setCameraMode: React.Dispatch<React.SetStateAction<boolean>> = (value) => {
     setCameraModeState((previous) => {
       const next = typeof value === "function" ? value(previous) : value;
-      try { localStorage.setItem("dinodash-camera-mode", next ? "1" : "0"); } catch {}
+      try { localStorage.setItem("dinodash-camera-mode", next ? "1" : "0"); } catch { /* localStorage may be unavailable */ }
       return next;
     });
   };
 
   useEffect(() => {
-    try { localStorage.setItem("dinodash-camera-zoom-index", String(cameraZoomIndex)); } catch {}
+    try { localStorage.setItem("dinodash-camera-zoom-index", String(cameraZoomIndex)); } catch { /* localStorage may be unavailable */ }
   }, [cameraZoomIndex]);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export const useCameraGestures = ({
       const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
       if (typeof detail?.enabled === "boolean") {
         setCameraModeState(detail.enabled);
-        try { localStorage.setItem("dinodash-camera-mode", detail.enabled ? "1" : "0"); } catch {}
+        try { localStorage.setItem("dinodash-camera-mode", detail.enabled ? "1" : "0"); } catch { /* localStorage may be unavailable */ }
       }
     };
     window.addEventListener(CAMERA_MODE_EVENT, handleCameraMode);
