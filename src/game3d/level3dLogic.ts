@@ -6,32 +6,48 @@ export function cellAt(level:Level3D,x:number,y:number){return level.cells.find(
 export function effectiveHeight(level:Level3D,rocks:Rock3D[],platforms:Platform3D[],x:number,y:number){const r=rocks.find(v=>v.x===x&&v.y===y);if(r&&r.height>0)return r.height;if(platforms.some(p=>p.x===x&&p.y===y))return 1;return cellAt(level,x,y)?.height??0}
 
 const isVoid = (level:Level3D,x:number,y:number) => cellAt(level,x,y)?.type === 'void';
+const isPlatformAt = (platforms:Platform3D[],x:number,y:number) => platforms.some(p=>p.x===x&&p.y===y);
+const isBlockingRockAt = (rocks:Rock3D[],x:number,y:number) => rocks.some(r=>r.x===x&&r.y===y&&r.height>0);
+const isHardStop = (level:Level3D,rocks:Rock3D[],x:number,y:number) => {
+  const cell=cellAt(level,x,y);
+  return cell?.type==='wall'||cell?.type==='rock'||isBlockingRockAt(rocks,x,y);
+};
+
+/**
+ * Launch from an arrow platform only when the thumbstick direction is allowed.
+ * The Dino then travels through consecutive void cells until it reaches the
+ * first real landing surface. Hard obstacles stop the glide immediately before
+ * the obstacle; floor/goal/teleport/bonus/platform surfaces become the landing cell.
+ */
+function glideFromPlatform(level:Level3D,player:Position3D,move:Move3D,rocks:Rock3D[],platforms:Platform3D[]):Position3D|null{
+  const platform=platforms.find(p=>p.x===player.x&&p.y===player.y);
+  if(!platform||!platform.directions?.includes(move))return null;
+  const d=DELTAS[move];
+  let x=player.x+d.x,y=player.y+d.y;
+  let lastVoid={x:player.x,y:player.y};
+
+  while(x>=0&&y>=0&&x<level.width&&y<level.depth){
+    if(isPlatformAt(platforms,x,y))return {x,y,height:1};
+    if(isHardStop(level,rocks,x,y))return lastVoid.x===player.x&&lastVoid.y===player.y?null:{...lastVoid,height:player.height};
+    if(!isVoid(level,x,y)){
+      const h=effectiveHeight(level,rocks,platforms,x,y);
+      return h>0&&h<=player.height+1?{x,y,height:h}:{...lastVoid,height:player.height};
+    }
+    lastVoid={x,y};
+    x+=d.x;y+=d.y;
+  }
+  return lastVoid.x===player.x&&lastVoid.y===player.y?null:{...lastVoid,height:player.height};
+}
 
 export function movePlayer(level:Level3D,player:Position3D,move:Move3D,rocks:Rock3D[]=[],platforms:Platform3D[]=[]):Position3D|null{
+  const glide=glideFromPlatform(level,player,move,rocks,platforms);
+  if(glide)return glide;
   const d=DELTAS[move];
-  const currentPlatform=platforms.find(p=>p.x===player.x&&p.y===player.y);
-
-  // An arrow block is an explicit launch surface. Once selected, the thumbstick
-  // supplies the launch direction. The block's own direction list is the only
-  // permitted direction; the player then glides across void until the next
-  // non-void cell, stopping on the cell immediately before it.
-  if(currentPlatform && currentPlatform.directions?.includes(move)){
-    let x=player.x+d.x,y=player.y+d.y;
-    if(x<0||y<0||x>=level.width||y>=level.depth)return null;
-    if(!isVoid(level,x,y))return null;
-    while(true){
-      const nx=x+d.x,ny=y+d.y;
-      if(nx<0||ny<0||nx>=level.width||ny>=level.depth)break;
-      if(!isVoid(level,nx,ny))break;
-      x=nx;y=ny;
-    }
-    return {x,y,height:player.height};
-  }
-
   const x=player.x+d.x,y=player.y+d.y;
   if(x<0||y<0||x>=level.width||y>=level.depth)return null;
   const target=cellAt(level,x,y);
-  if(target?.type==='void'&&!platforms.some(p=>p.x===x&&p.y===y))return null;
+  if(target?.type==='void'&&!isPlatformAt(platforms,x,y))return null;
+  if(target?.type==='wall'||isBlockingRockAt(rocks,x,y))return null;
   const h=effectiveHeight(level,rocks,platforms,x,y);
   if(h<=0||h>player.height+1)return null;
   return{x,y,height:h};
