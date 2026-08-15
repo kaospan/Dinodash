@@ -1,5 +1,6 @@
 import { StrictMode, createElement } from "react";
 import { createRoot } from "react-dom/client";
+import App from "./App";
 import "./index.css";
 
 const BUILD_ID = (import.meta.env.VITE_BUILD_ID as string | undefined) ?? "";
@@ -20,9 +21,7 @@ if (!rootElement) {
 } else {
   try {
     const root = createRoot(rootElement);
-    import("./App.tsx")
-      .then(({ default: App }) => root.render(createElement(StrictMode, null, createElement(App))))
-      .catch((error) => showFatal("App module failed to load", error));
+    root.render(createElement(StrictMode, null, createElement(App)));
   } catch (error) {
     showFatal("React bootstrap failed", error);
   }
