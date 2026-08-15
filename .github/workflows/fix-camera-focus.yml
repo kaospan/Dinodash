@@ -23,22 +23,22 @@ jobs:
           git checkout 383742db1d0acdcc9687867324d5b81301398322 -- src/components/Game3D.tsx
           python3 - <<'PY'
           from pathlib import Path
-          path = Path('src/components/Game3D.tsx')
+          path = Path("src/components/Game3D.tsx")
           text = path.read_text()
-          old = '''  const rotations: { [key: number]: number } = {
+          old = """  const rotations: { [key: number]: number } = {
     7: 0,           // up
     8: -Math.PI / 2, // right - points in +X direction
     9: Math.PI,     // down
     10: Math.PI / 2 // left - points in -X direction
-  };'''
-          new = '''  const rotations: { [key: number]: number } = {
+  };"""
+          new = """  const rotations: { [key: number]: number } = {
     7: Math.PI,       // down
     8: Math.PI / 2,   // left - points in -X direction
     9: 0,              // up
     10: -Math.PI / 2  // right - points in +X direction
-  };'''
+  };"""
           if old not in text:
-              raise SystemExit('single-arrow rotation block not found')
+              raise SystemExit("single-arrow rotation block not found")
           path.write_text(text.replace(old, new))
           PY
 
@@ -48,15 +48,12 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-
           path = Path('src/components/Dinodash3D.tsx')
           text = path.read_text()
-
           if '/* DINO_CAMERA_FOLLOW */' in text:
               print('Camera follow patch already present.')
               raise SystemExit(0)
-
-          replacement = r'''/* DINO_CAMERA_FOLLOW */
+          replacement = '''/* DINO_CAMERA_FOLLOW */
           function Camera({level,player,topDown}:{level:Level3D;player:Position3D;topDown:boolean}){
             const {size}=useThree();
             const controls=useRef<any>(null);
@@ -84,14 +81,12 @@ jobs:
             return <><PerspectiveCamera makeDefault position={topDown?[center.x,dist*1.15,center.z+.01]:cameraPosition.toArray()} fov={42}/><OrbitControls ref={controls} target={topDown?center:target} enablePan={false} enableRotate enableDamping dampingFactor={.08} minPolarAngle={.08} maxPolarAngle={Math.PI/2-.035} minDistance={Math.max(2.5,dist*.35)} maxDistance={dist}/></>;
           }
           '''
-
           pattern = r'function Camera\(\{level,player,topDown\}:\{level:Level3D;player:Position3D;topDown:boolean\}\).*?(?=function ArrowPlatform)'
           new_text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
           if count != 1:
               print('Camera function shape differs; no camera change made.')
               raise SystemExit(0)
           path.write_text(new_text)
-          print('Camera function patched.')
           PY
 
       - name: Validate build
